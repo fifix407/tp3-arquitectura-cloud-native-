@@ -7,12 +7,14 @@ Utiliza Microsoft Edge en modo headless para renderizar HTML+CSS a un PDF de alt
 import json
 import os
 import subprocess
+import shutil
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 RESULTS_DIR = BASE_DIR / "benchmark_results"
 OUTPUT_HTML = BASE_DIR / "report.html"
-OUTPUT_PDF = BASE_DIR / "TP3_Arquitectura_Cloud_Native_Militello.pdf"
+OUTPUT_PDF = BASE_DIR / "TP3_Arquitectura_Cloud_Native_Astorga_Bustos_Militello.pdf"
+OUTPUT_PDF_LEGACY = BASE_DIR / "TP3_Arquitectura_Cloud_Native_Militello.pdf"
 
 # Cargar métricas del benchmark
 with open(RESULTS_DIR / "summary.json", "r", encoding="utf-8") as f:
@@ -238,7 +240,7 @@ html_template = """<!DOCTYPE html>
 </div>
 
 <div class="meta-box">
-    <div class="meta-item"><strong>Estudiante:</strong> Santiago Militello (fifix407)</div>
+    <div class="meta-item"><strong>Integrantes del Grupo:</strong> Lucía Astorga, Emmanuel Bustos, Santiago Militello</div>
     <div class="meta-item"><strong>Empresa Caso de Estudio:</strong> GlobalLogistics S.A.</div>
     <div class="meta-item"><strong>Repositorio Público Git:</strong> <a class="repo-link" href="https://github.com/fifix407/tp3-arquitectura-cloud-native" target="_blank">github.com/fifix407/tp3-arquitectura-cloud-native</a></div>
     <div class="meta-item"><strong>Fecha de Entrega:</strong> 02 de Noviembre de 2026</div>
@@ -750,6 +752,8 @@ cmd = [
 
 res = subprocess.run(cmd, capture_output=True, text=True)
 if res.returncode == 0 and OUTPUT_PDF.exists():
+    shutil.copyfile(OUTPUT_PDF, OUTPUT_PDF_LEGACY)
     print(f"[EXITO] PDF compilado satisfactoriamente: {OUTPUT_PDF} ({OUTPUT_PDF.stat().st_size} bytes)")
+    print(f"[EXITO] Copia generada: {OUTPUT_PDF_LEGACY}")
 else:
     print(f"Error generando PDF: {res.stderr}")
