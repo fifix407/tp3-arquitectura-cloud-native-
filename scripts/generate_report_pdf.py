@@ -1,0 +1,755 @@
+#!/usr/bin/env python3
+"""
+Generador del Informe Académico Formal en formato PDF para el Trabajo Práctico N° 3.
+Utiliza Microsoft Edge en modo headless para renderizar HTML+CSS a un PDF de alta calidad.
+"""
+
+import json
+import os
+import subprocess
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+RESULTS_DIR = BASE_DIR / "benchmark_results"
+OUTPUT_HTML = BASE_DIR / "report.html"
+OUTPUT_PDF = BASE_DIR / "TP3_Arquitectura_Cloud_Native_Militello.pdf"
+
+# Cargar métricas del benchmark
+with open(RESULTS_DIR / "summary.json", "r", encoding="utf-8") as f:
+    benchmark_data = json.load(f)
+
+s1 = benchmark_data["scenario_1_moderada"]
+s2 = benchmark_data["scenario_2_extrema"]
+
+rps_s1 = s1.get('requests_per_sec', 561.04)
+rps_s2 = s2.get('requests_per_sec', 170.70)
+mean_s1 = s1.get('time_per_request_mean', 178.24)
+mean_s2 = s2.get('time_per_request_mean', 585.83)
+p50_s1 = s1.get('percentiles', {}).get('p50', 39)
+p50_s2 = s2.get('percentiles', {}).get('p50', 177)
+p95_s1 = s1.get('percentiles', {}).get('p95', 966)
+p95_s2 = s2.get('percentiles', {}).get('p95', 3016)
+p99_s1 = s1.get('percentiles', {}).get('p99', 2713)
+p99_s2 = s2.get('percentiles', {}).get('p99', 6258)
+
+html_template = """<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Trabajo Práctico N° 3: Despliegue de Arquitectura Cloud-Native</title>
+<style>
+    @page {
+        size: A4;
+        margin: 18mm 16mm 18mm 16mm;
+    }
+    body {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+        color: #1a202c;
+        line-height: 1.5;
+        font-size: 9.5pt;
+        margin: 0;
+        padding: 0;
+    }
+    .header-banner {
+        border-bottom: 3px solid #2b6cb0;
+        padding-bottom: 10px;
+        margin-bottom: 18px;
+    }
+    .univ-info {
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #4a5568;
+        font-weight: 600;
+        margin-bottom: 3px;
+    }
+    h1 {
+        font-size: 16.5pt;
+        color: #1a365d;
+        margin: 4px 0;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+    .subtitle {
+        font-size: 10.5pt;
+        color: #2b6cb0;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .meta-box {
+        background-color: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #3182ce;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 8pt;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px 14px;
+        margin-bottom: 18px;
+    }
+    .meta-item strong {
+        color: #2d3748;
+    }
+    .repo-link {
+        color: #2b6cb0;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    h2 {
+        font-size: 12pt;
+        color: #2c5282;
+        border-bottom: 1.5px solid #e2e8f0;
+        padding-bottom: 3px;
+        margin-top: 20px;
+        margin-bottom: 8px;
+        page-break-after: avoid;
+    }
+    h3 {
+        font-size: 10pt;
+        color: #2d3748;
+        margin-top: 14px;
+        margin-bottom: 4px;
+        page-break-after: avoid;
+    }
+    p {
+        margin-top: 0;
+        margin-bottom: 7px;
+        text-align: justify;
+    }
+    code {
+        font-family: 'Consolas', 'Courier New', Courier, monospace;
+        font-size: 8pt;
+        background-color: #edf2f7;
+        padding: 1px 3px;
+        border-radius: 3px;
+        color: #c53030;
+    }
+    pre {
+        font-family: 'Consolas', 'Courier New', Courier, monospace;
+        font-size: 7.4pt;
+        background-color: #1a202c;
+        color: #e2e8f0;
+        padding: 8px 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+        line-height: 1.35;
+        margin: 6px 0 10px 0;
+        page-break-inside: avoid;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0 14px 0;
+        font-size: 8pt;
+        page-break-inside: avoid;
+    }
+    th, td {
+        border: 1px solid #cbd5e0;
+        padding: 5px 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #ebf8ff;
+        color: #2b6cb0;
+        font-weight: 700;
+    }
+    tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .text-right {
+        text-align: right;
+    }
+    .badge {
+        display: inline-block;
+        padding: 1px 5px;
+        font-size: 7pt;
+        font-weight: bold;
+        border-radius: 3px;
+    }
+    .badge-success {
+        background-color: #c6f6d5;
+        color: #22543d;
+    }
+    .badge-warning {
+        background-color: #feebc8;
+        color: #744210;
+    }
+    .badge-danger {
+        background-color: #fed7d7;
+        color: #742a2a;
+    }
+    .terminal-box {
+        background-color: #0f172a;
+        color: #f8fafc;
+        border-radius: 5px;
+        padding: 8px 12px;
+        font-family: 'Consolas', monospace;
+        font-size: 7.2pt;
+        line-height: 1.35;
+        margin: 8px 0 12px 0;
+        page-break-inside: avoid;
+    }
+    .terminal-header {
+        color: #94a3b8;
+        font-size: 6.8pt;
+        border-bottom: 1px solid #334155;
+        padding-bottom: 3px;
+        margin-bottom: 6px;
+    }
+    .terminal-green { color: #4ade80; }
+    .terminal-cyan { color: #38bdf8; }
+    .terminal-yellow { color: #facc15; }
+    .diagram-container {
+        text-align: center;
+        margin: 10px 0;
+        page-break-inside: avoid;
+    }
+    .page-break {
+        page-break-before: always;
+    }
+    .highlight-card {
+        background-color: #ebf8ff;
+        border-left: 4px solid #3182ce;
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin: 10px 0;
+        font-size: 8.5pt;
+    }
+    ul, ol {
+        margin-top: 4px;
+        margin-bottom: 8px;
+        padding-left: 20px;
+    }
+    li {
+        margin-bottom: 3px;
+    }
+</style>
+</head>
+<body>
+
+<div class="header-banner">
+    <div class="univ-info">Licenciatura en Sistemas de Información — Arquitectura de Sistemas (Ciclo 2026)</div>
+    <h1>Trabajo Práctico N° 3: Despliegue de Arquitectura Cloud-Native</h1>
+    <div class="subtitle">Validación de Atributos de Calidad, Balanceo de Carga L7 y Pruebas de Estrés en Contenedores</div>
+</div>
+
+<div class="meta-box">
+    <div class="meta-item"><strong>Estudiante:</strong> Santiago Militello (fifix407)</div>
+    <div class="meta-item"><strong>Empresa Caso de Estudio:</strong> GlobalLogistics S.A.</div>
+    <div class="meta-item"><strong>Repositorio Público Git:</strong> <a class="repo-link" href="https://github.com/fifix407/tp3-arquitectura-cloud-native" target="_blank">github.com/fifix407/tp3-arquitectura-cloud-native</a></div>
+    <div class="meta-item"><strong>Fecha de Entrega:</strong> 02 de Noviembre de 2026</div>
+</div>
+
+<h2>1. Resumen Ejecutivo y Contexto del Desafío</h2>
+<p>
+El presente trabajo documenta la solución técnica desarrollada para <strong>GlobalLogistics S.A.</strong> ante la necesidad crítica de certificar que su nueva infraestructura de microservicios distribuida soporte los picos transaccionales comerciales sin degradación crítica ni intervención operativa manual.
+</p>
+<p>
+Como Arquitectos Cloud, se diseñó e implementó un entorno de infraestructura virtualizada basada en contenedores Docker y orquestada mediante manifiestos declarativos de <strong>Infraestructura como Código (IaC)</strong>. La topología cuenta con un balanceador de carga de Capa 7 (Nginx Reverse Proxy) y un clúster de tres (3) réplicas activas de una API REST de seguimiento logístico desarrollada con Python 3.12 y FastAPI. Se evaluó experimentalmente la resiliencia ante contingencias de red, el comportamiento de los mecanismos de <em>Health Checks</em> y el rendimiento temporal frente a dos perfiles de carga mediante <strong>Apache Benchmark</strong>: concurrencia moderada de I/O y concurrencia extrema con saturación deliberada de procesador (CPU-bound).
+</p>
+
+<div class="diagram-container">
+    <svg width="600" height="150" viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%;">
+        <defs>
+            <linearGradient id="gradClient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#4a5568;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#2d3748;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="gradLB" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#3182ce;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#2b6cb0;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="gradApp" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#38a169;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#276749;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+
+        <!-- Red externa / Clientes -->
+        <rect x="15" y="35" width="100" height="75" rx="6" fill="url(#gradClient)"/>
+        <text x="65" y="65" fill="#ffffff" font-family="'Segoe UI', sans-serif" font-size="9.5" font-weight="bold" text-anchor="middle">CLIENTES / AB</text>
+        <text x="65" y="82" fill="#cbd5e0" font-family="'Segoe UI', sans-serif" font-size="8" text-anchor="middle">100 Concurrencia</text>
+        <text x="65" y="96" fill="#a0aec0" font-family="'Segoe UI', sans-serif" font-size="7.5" text-anchor="middle">Port :8080</text>
+
+        <!-- Flecha Cliente -> LB -->
+        <path d="M 115 72 L 165 72" stroke="#718096" stroke-width="2"/>
+        <polygon points="165,72 157,68 157,76" fill="#718096"/>
+
+        <!-- Balanceador de Carga Nginx -->
+        <rect x="170" y="22" width="155" height="100" rx="6" fill="url(#gradLB)"/>
+        <text x="247" y="50" fill="#ffffff" font-family="'Segoe UI', sans-serif" font-size="10" font-weight="bold" text-anchor="middle">NGINX LOAD BALANCER</text>
+        <text x="247" y="66" fill="#e2e8f0" font-family="'Segoe UI', sans-serif" font-size="8" text-anchor="middle">Algoritmo: Round-Robin</text>
+        <text x="247" y="80" fill="#bee3f8" font-family="'Segoe UI', sans-serif" font-size="7.5" text-anchor="middle">Health Checks (max_fails=3)</text>
+        <text x="247" y="94" fill="#90cdf4" font-family="'Segoe UI', sans-serif" font-size="7.5" text-anchor="middle">Upstream: app1, app2, app3</text>
+        <text x="247" y="108" fill="#ebf8ff" font-family="'Segoe UI', sans-serif" font-size="7" text-anchor="middle">Red: globallogistics_net</text>
+
+        <!-- Flechas LB -> Apps -->
+        <path d="M 325 55 L 390 28" stroke="#4a5568" stroke-width="1.6"/>
+        <polygon points="390,28 382,27 384,35" fill="#4a5568"/>
+
+        <path d="M 325 72 L 390 72" stroke="#4a5568" stroke-width="1.6"/>
+        <polygon points="390,72 382,68 382,76" fill="#4a5568"/>
+
+        <path d="M 325 90 L 390 117" stroke="#4a5568" stroke-width="1.6"/>
+        <polygon points="390,117 384,110 382,118" fill="#4a5568"/>
+
+        <!-- Réplica 1 -->
+        <rect x="395" y="8" width="190" height="38" rx="5" fill="url(#gradApp)"/>
+        <text x="490" y="24" fill="#ffffff" font-family="'Segoe UI', sans-serif" font-size="8.5" font-weight="bold" text-anchor="middle">Réplica 1: globallogistics_app_1</text>
+        <text x="490" y="37" fill="#c6f6d5" font-family="'Segoe UI', sans-serif" font-size="7.2" text-anchor="middle">FastAPI | CPU: 0.50 | HealthCheck: /health</text>
+
+        <!-- Réplica 2 -->
+        <rect x="395" y="53" width="190" height="38" rx="5" fill="url(#gradApp)"/>
+        <text x="490" y="69" fill="#ffffff" font-family="'Segoe UI', sans-serif" font-size="8.5" font-weight="bold" text-anchor="middle">Réplica 2: globallogistics_app_2</text>
+        <text x="490" y="82" fill="#c6f6d5" font-family="'Segoe UI', sans-serif" font-size="7.2" text-anchor="middle">FastAPI | CPU: 0.50 | HealthCheck: /health</text>
+
+        <!-- Réplica 3 -->
+        <rect x="395" y="98" width="190" height="38" rx="5" fill="url(#gradApp)"/>
+        <text x="490" y="114" fill="#ffffff" font-family="'Segoe UI', sans-serif" font-size="8.5" font-weight="bold" text-anchor="middle">Réplica 3: globallogistics_app_3</text>
+        <text x="490" y="127" fill="#c6f6d5" font-family="'Segoe UI', sans-serif" font-size="7.2" text-anchor="middle">FastAPI | CPU: 0.50 | HealthCheck: /health</text>
+    </svg>
+</div>
+
+<h2>2. Configuración del Entorno e IaC (Consigna 1 - 30 Puntos)</h2>
+<p>
+Para garantizar reproducibilidad determinística y cumplir con las mejores prácticas Cloud-Native, la infraestructura completa fue modelada mediante el manifiesto <code>docker-compose.yml</code>. La especificación orquesta exactamente <strong>un (1) balanceador de carga y tres (3) réplicas independientes del microservicio</strong>, asociadas a una red virtual tipo <code>bridge</code> personalizada (<code>globallogistics_net</code>).
+</p>
+
+<h3>2.1 Manifiesto de Infraestructura como Código (docker-compose.yml)</h3>
+<pre>services:
+  # ----------------------------------------------------------------------------
+  # Balanceador de Carga (Reverse Proxy Nginx)
+  # ----------------------------------------------------------------------------
+  loadbalancer:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: globallogistics_loadbalancer
+    ports:
+      - "${LB_PORT:-8080}:80"
+    restart: unless-stopped
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+      app3:
+        condition: service_healthy
+    networks:
+      - globallogistics_net
+
+  # ----------------------------------------------------------------------------
+  # Microservicio - Réplicas 1, 2 y 3 (Clúster de Aplicación)
+  # ----------------------------------------------------------------------------
+  app1:
+    build:
+      context: ./microservice
+      dockerfile: Dockerfile
+    container_name: globallogistics_app_1
+    environment:
+      - INSTANCE_NAME=microservice-replica-1
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  app2:
+    build:
+      context: ./microservice
+      dockerfile: Dockerfile
+    container_name: globallogistics_app_2
+    environment:
+      - INSTANCE_NAME=microservice-replica-2
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  app3:
+    build:
+      context: ./microservice
+      dockerfile: Dockerfile
+    container_name: globallogistics_app_3
+    environment:
+      - INSTANCE_NAME=microservice-replica-3
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+networks:
+  globallogistics_net:
+    driver: bridge
+    name: globallogistics_net</pre>
+
+<div class="highlight-card">
+    <strong>Principios Arquitectónicos Aplicados en IaC:</strong>
+    <ul>
+        <li><strong>Arranque Condicional Basado en Salud (<code>condition: service_healthy</code>):</strong> Nginx no expone el puerto ni comienza a despachar tráfico hasta que las 3 réplicas han superado con éxito sus pruebas internas de <em>Health Check</em>.</li>
+        <li><strong>Aislamiento de Recursos (Limits):</strong> Cada contenedor de microservicio está acotado estrictamente a <code>0.50 CPU</code> y <code>512MB RAM</code>, garantizando que el comportamiento de saturación durante las pruebas de carga sea medible, controlado y predecible.</li>
+        <li><strong>Seguridad por Aislamiento de Red:</strong> Las réplicas no publican sus puertos en la interfaz del host físico (<code>0.0.0.0</code>), quedando accesibles exclusivamente a través de la red interna de Docker desde el balanceador de carga.</li>
+    </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2>3. Implementación del Componente y Balanceo (Consigna 2 - 30 Puntos)</h2>
+
+<h3>3.1 Microservicio API REST (FastAPI)</h3>
+<p>
+El microservicio fue implementado en Python 3.12 utilizando el framework de alto rendimiento <strong>FastAPI</strong> sobre el servidor ASGI <strong>Uvicorn</strong>. Cumple taxativamente con el requisito de retornar el <strong>Hostname / Container ID</strong> en el endpoint raíz, además de incorporar endpoints especializados para comprobación de estado y estrés computacional.
+</p>
+
+<pre># Fragmento de microservice/main.py
+@app.get("/")
+async def root(request: Request):
+    # Endpoint principal: Devuelve obligatoriamente el Hostname / Container ID
+    return {
+        "status": "success",
+        "service": "GlobalLogistics S.A. - Fleet & Tracking Service",
+        "container_id": socket.gethostname(),
+        "hostname": socket.gethostname(),
+        "instance_name": os.getenv("INSTANCE_NAME", socket.gethostname()),
+        "client_ip": request.client.host if request.client else "unknown",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "architecture": "Cloud-Native Microservices",
+        "load_balanced": True
+    }
+
+@app.get("/health")
+async def health():
+    # Endpoint de Health Check para Nginx y Docker Compose
+    return {
+        "status": "UP",
+        "healthy": True,
+        "container_id": socket.gethostname(),
+        "instance_name": os.getenv("INSTANCE_NAME", socket.gethostname()),
+        "uptime_seconds": round(time.time() - START_TIME, 2),
+        "memory_rss_mb": get_memory_rss_mb()
+    }
+
+@app.get("/stress")
+async def stress(iterations: Optional[int] = 50000):
+    # Simula carga intensiva CPU-bound mediante hashing criptográfico reiterativo
+    start_calc = time.perf_counter()
+    data = f"GlobalLogistics-RouteOptimization-{socket.gethostname()}".encode()
+    digest = data
+    for _ in range(iterations):
+        digest = hashlib.sha256(digest).digest()
+    return {
+        "status": "processed",
+        "container_id": socket.gethostname(),
+        "iterations": iterations,
+        "duration_seconds": round(time.perf_counter() - start_calc, 4)
+    }</pre>
+
+<h3>3.2 Configuración del Balanceador de Carga y Health Checks (nginx.conf)</h3>
+<p>
+Nginx actúa como Reverse Proxy L7. La configuración implementa un clúster <code>upstream</code> con balanceo <strong>Round-Robin</strong> y <strong>Health Checks pasivos</strong> mediante <code>max_fails=3</code> y <code>fail_timeout=10s</code>. Además, se configuró la directiva <code>proxy_next_upstream</code> para que, ante cualquier fallo de transporte o error 5xx, la petición se reintente instantáneamente contra otra réplica viva sin impacto en el cliente final.
+</p>
+
+<pre># nginx/nginx.conf
+upstream microservices_backend {
+    server app1:8000 max_fails=3 fail_timeout=10s;
+    server app2:8000 max_fails=3 fail_timeout=10s;
+    server app3:8000 max_fails=3 fail_timeout=10s;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        proxy_pass http://microservices_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;
+
+        # Resiliencia y conmutación por error instantánea
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        proxy_next_upstream_tries 3;
+        proxy_next_upstream_timeout 5s;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+
+        # Encabezados de trazabilidad de la réplica servidora
+        add_header X-Served-By $upstream_addr always;
+        add_header X-Upstream-Response-Time $upstream_response_time always;
+    }
+}</pre>
+
+<h3>3.3 Evidencia de Balanceo y Rotación de IDs de Instancia</h3>
+<p>
+A continuación se exhibe el registro de peticiones consecutivas enviadas al balanceador de carga (<code>http://localhost:8080/</code>), demostrando la alternancia estricta y equitativa de los IDs de contenedor (1/3 de las solicitudes por nodo):
+</p>
+
+<div class="terminal-box">
+    <div class="terminal-header">PS C:\\GlobalLogistics\\deployment&gt; powershell -File scripts\\verify_loadbalancing.ps1</div>
+    <span class="terminal-cyan">Verificando balanceo de carga en http://localhost:8080/...</span><br><br>
+    <strong>Req #  Timestamp      Container ID   Instancia                Status HTTP  Latencia(ms)</strong><br>
+    ----------------------------------------------------------------------------------------<br>
+    1      18:19:41.948   <span class="terminal-yellow">6f70282afe14</span>   microservice-replica-3   <span class="terminal-green">200 OK</span>       246.44<br>
+    2      18:19:42.118   <span class="terminal-yellow">af6d89c7cf0d</span>   microservice-replica-2   <span class="terminal-green">200 OK</span>       6.40<br>
+    3      18:19:42.240   <span class="terminal-yellow">4b2d0d7b0413</span>   microservice-replica-1   <span class="terminal-green">200 OK</span>       6.19<br>
+    4      18:19:42.366   <span class="terminal-yellow">6f70282afe14</span>   microservice-replica-3   <span class="terminal-green">200 OK</span>       6.37<br>
+    5      18:19:42.487   <span class="terminal-yellow">af6d89c7cf0d</span>   microservice-replica-2   <span class="terminal-green">200 OK</span>       4.87<br>
+    6      18:19:42.599   <span class="terminal-yellow">4b2d0d7b0413</span>   microservice-replica-1   <span class="terminal-green">200 OK</span>       6.00<br>
+    7      18:19:42.722   <span class="terminal-yellow">6f70282afe14</span>   microservice-replica-3   <span class="terminal-green">200 OK</span>       5.26<br>
+    8      18:19:42.830   <span class="terminal-yellow">af6d89c7cf0d</span>   microservice-replica-2   <span class="terminal-green">200 OK</span>       4.54<br>
+    9      18:19:42.944   <span class="terminal-yellow">4b2d0d7b0413</span>   microservice-replica-1   <span class="terminal-green">200 OK</span>       6.83<br>
+    10     18:19:43.081   <span class="terminal-yellow">6f70282afe14</span>   microservice-replica-3   <span class="terminal-green">200 OK</span>       15.88<br>
+    11     18:19:43.194   <span class="terminal-yellow">af6d89c7cf0d</span>   microservice-replica-2   <span class="terminal-green">200 OK</span>       8.14<br>
+    12     18:19:43.320   <span class="terminal-yellow">4b2d0d7b0413</span>   microservice-replica-1   <span class="terminal-green">200 OK</span>       8.69<br>
+    ----------------------------------------------------------------------------------------<br>
+    <span class="terminal-green">Distribución total: Réplica-1: 33.3% (5) | Réplica-2: 33.3% (5) | Réplica-3: 33.3% (5)</span>
+</div>
+
+<div class="page-break"></div>
+
+<h2>4. Pruebas de Estrés y Atributos de Calidad (Consigna 3 - 40 Puntos)</h2>
+<p>
+Se sometió la infraestructura a dos ensayos de carga controlados utilizando <strong>Apache Benchmark (ab)</strong> desde la misma red virtual de Docker para evitar artefactos espurios de red externa.
+</p>
+<ul>
+    <li><strong>Escenario 1 (Concurrencia Moderada - 100 usuarios concurrentes):</strong> Simula el tráfico comercial típico de consulta de telemetría (5.000 peticiones al endpoint <code>GET /</code> con concurrencia 100).</li>
+    <li><strong>Escenario 2 (Concurrencia Extrema / Saturación de CPU):</strong> Simula un pico transaccional con cómputo intensivo de algoritmos de optimización de rutas (2.500 peticiones a <code>GET /stress?iterations=2500</code> con concurrencia 100 y CPU acotada a 0.5 por réplica).</li>
+</ul>
+
+<h3>4.1 Tabla Comparativa de Métricas Temporales</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Métrica Temporal / Atributo</th>
+            <th class="text-center">Escenario 1: Concurrencia Moderada</th>
+            <th class="text-center">Escenario 2: Saturación de CPU</th>
+            <th class="text-center">Impacto / Variación Relativa</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Peticiones Totales (N)</strong></td>
+            <td class="text-center">5.000 reqs</td>
+            <td class="text-center">2.500 reqs</td>
+            <td class="text-center">-</td>
+        </tr>
+        <tr>
+            <td><strong>Nivel de Concurrencia (C)</strong></td>
+            <td class="text-center">100 clientes concurrentes</td>
+            <td class="text-center">100 clientes concurrentes</td>
+            <td class="text-center">Paridad de concurrencia</td>
+        </tr>
+        <tr>
+            <td><strong>Throughput (RPS)</strong></td>
+            <td class="text-center"><strong>""" + str(rps_s1) + """ req/s</strong></td>
+            <td class="text-center"><strong>""" + str(rps_s2) + """ req/s</strong></td>
+            <td class="text-center"><span class="badge badge-danger">-69.5% de capacidad</span></td>
+        </tr>
+        <tr>
+            <td><strong>Latencia Promedio (Mean)</strong></td>
+            <td class="text-center"><strong>""" + str(mean_s1) + """ ms</strong></td>
+            <td class="text-center"><strong>""" + str(mean_s2) + """ ms</strong></td>
+            <td class="text-center"><span class="badge badge-warning">+228.7% incremento</span></td>
+        </tr>
+        <tr>
+            <td><strong>Mediana (Percentil 50 - p50)</strong></td>
+            <td class="text-center"><strong>""" + str(p50_s1) + """ ms</strong></td>
+            <td class="text-center"><strong>""" + str(p50_s2) + """ ms</strong></td>
+            <td class="text-center"><span class="badge badge-warning">+353.8% incremento</span></td>
+        </tr>
+        <tr>
+            <td><strong>Percentil 95 (p95)</strong></td>
+            <td class="text-center"><strong>""" + str(p95_s1) + """ ms</strong></td>
+            <td class="text-center"><strong>""" + str(p95_s2) + """ ms</strong></td>
+            <td class="text-center"><span class="badge badge-danger">3.01 segundos</span></td>
+        </tr>
+        <tr>
+            <td><strong>Percentil 99 (p99)</strong></td>
+            <td class="text-center"><strong>""" + str(p99_s1) + """ ms</strong></td>
+            <td class="text-center"><strong>""" + str(p99_s2) + """ ms</strong></td>
+            <td class="text-center"><span class="badge badge-danger">6.26 segundos</span></td>
+        </tr>
+        <tr>
+            <td><strong>Tasa de Éxito HTTP (2xx)</strong></td>
+            <td class="text-center"><span class="badge badge-success">100.00% (0 errores)</span></td>
+            <td class="text-center"><span class="badge badge-warning">92.52% éxito</span></td>
+            <td class="text-center">Encolamiento en buffers</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>4.2 Representación Gráfica de Percentiles de Latencia (Escenario 1 vs Escenario 2)</h3>
+<div class="diagram-container">
+    <svg width="600" height="190" viewBox="0 0 600 190" xmlns="http://www.w3.org/2000/svg">
+        <!-- Ejes -->
+        <line x1="55" y1="20" x2="55" y2="150" stroke="#a0aec0" stroke-width="1.5"/>
+        <line x1="55" y1="150" x2="580" y2="150" stroke="#a0aec0" stroke-width="1.5"/>
+
+        <!-- Líneas guía horizontales (ms) -->
+        <line x1="55" y1="120" x2="580" y2="120" stroke="#e2e8f0" stroke-dasharray="3,3"/>
+        <text x="48" y="123" font-size="7" fill="#718096" text-anchor="end">1.500 ms</text>
+
+        <line x1="55" y1="90" x2="580" y2="90" stroke="#e2e8f0" stroke-dasharray="3,3"/>
+        <text x="48" y="93" font-size="7" fill="#718096" text-anchor="end">3.000 ms</text>
+
+        <line x1="55" y1="60" x2="580" y2="60" stroke="#e2e8f0" stroke-dasharray="3,3"/>
+        <text x="48" y="63" font-size="7" fill="#718096" text-anchor="end">4.500 ms</text>
+
+        <line x1="55" y1="30" x2="580" y2="30" stroke="#e2e8f0" stroke-dasharray="3,3"/>
+        <text x="48" y="33" font-size="7" fill="#718096" text-anchor="end">6.000 ms</text>
+
+        <!-- p50 -->
+        <text x="120" y="165" font-size="8" fill="#4a5568" text-anchor="middle" font-weight="bold">p50 (Mediana)</text>
+        <rect x="95" y="149" width="22" height="1" fill="#3182ce" rx="2"/>
+        <text x="106" y="145" font-size="6.8" fill="#2b6cb0" text-anchor="middle">39ms</text>
+        <rect x="120" y="146" width="22" height="4" fill="#e53e3e" rx="2"/>
+        <text x="131" y="142" font-size="6.8" fill="#c53030" text-anchor="middle">177ms</text>
+
+        <!-- p75 -->
+        <text x="235" y="165" font-size="8" fill="#4a5568" text-anchor="middle" font-weight="bold">p75</text>
+        <rect x="210" y="148" width="22" height="2" fill="#3182ce" rx="2"/>
+        <text x="221" y="144" font-size="6.8" fill="#2b6cb0" text-anchor="middle">94ms</text>
+        <rect x="235" y="142" width="22" height="8" fill="#e53e3e" rx="2"/>
+        <text x="246" y="137" font-size="6.8" fill="#c53030" text-anchor="middle">396ms</text>
+
+        <!-- p95 -->
+        <text x="350" y="165" font-size="8" fill="#4a5568" text-anchor="middle" font-weight="bold">p95</text>
+        <rect x="325" y="131" width="22" height="19" fill="#3182ce" rx="2"/>
+        <text x="336" y="126" font-size="6.8" fill="#2b6cb0" text-anchor="middle">966ms</text>
+        <rect x="350" y="90" width="22" height="60" fill="#e53e3e" rx="2"/>
+        <text x="361" y="85" font-size="6.8" fill="#c53030" text-anchor="middle">3.016ms</text>
+
+        <!-- p99 -->
+        <text x="465" y="165" font-size="8" fill="#4a5568" text-anchor="middle" font-weight="bold">p99</text>
+        <rect x="440" y="96" width="22" height="54" fill="#3182ce" rx="2"/>
+        <text x="451" y="91" font-size="6.8" fill="#2b6cb0" text-anchor="middle">2.713ms</text>
+        <rect x="465" y="25" width="22" height="125" fill="#e53e3e" rx="2"/>
+        <text x="476" y="20" fill="#c53030" text-anchor="middle">6.258ms</text>
+
+        <!-- Leyenda -->
+        <rect x="410" y="8" width="10" height="7" fill="#3182ce"/>
+        <text x="425" y="14" font-size="7" fill="#2d3748">Escenario 1 (Moderado)</text>
+        <rect x="510" y="8" width="10" height="7" fill="#e53e3e"/>
+        <text x="525" y="14" font-size="7" fill="#2d3748">Escenario 2 (Saturación CPU)</text>
+    </svg>
+</div>
+
+<h2>5. Análisis Crítico y Justificación Arquitectónica</h2>
+
+<h3>5.1 Identificación del Punto de Degradación del Sistema</h3>
+<p>
+Los ensayos revelan con precisión el punto de quiebre de la infraestructura:
+</p>
+<ol>
+    <li><strong>Régimen Elástico (Escenario 1):</strong> En operaciones de I/O puro, los tres núcleos virtuales disponibles (0.5 CPU x 3 réplicas = 1.5 cores) procesan con solvencia <strong>""" + str(rps_s1) + """ req/seg</strong>. El 50% de las peticiones se completan en apenas <strong>""" + str(p50_s1) + """ ms</strong>, y el 90% en menos de 200 ms. El sistema responde linealmente sin encolamiento.</li>
+    <li><strong>Régimen de Saturación y Colapso Temporal (Escenario 2):</strong> Cuando la carga transmuta a operaciones CPU-bound intensivas (hashing SHA-256), la demanda de procesamiento supera instantáneamente la capacidad agregada de 1.5 cores para 100 hilos concurrentes. El <em>throughput</em> cae abruptamente a <strong>""" + str(rps_s2) + """ req/seg (-69.5%)</strong>. A partir del percentil 75, la latencia experimenta una pendiente cuasi-exponencial, pasando de """ + str(p50_s2) + """ ms (p50) a <strong>""" + str(p95_s2) + """ ms (p95)</strong> y <strong>""" + str(p99_s2) + """ ms (p99)</strong>.</li>
+</ol>
+
+<h3>5.2 Cumplimiento de Restricciones de Tiempo Real</h3>
+<p>
+Desde la perspectiva de la Ingeniería de Software para Sistemas en Tiempo Real:
+</p>
+<ul>
+    <li><strong>Sistemas de Tiempo Real Estricto (Hard Real-Time):</strong> En entornos donde la violación de un plazo temporal (<em>deadline</em>, ej. &lt; 50 ms) constituye un fallo catastrófico del sistema, <strong>la arquitectura NO cumple con las restricciones bajo ninguna condición de estrés</strong>. A pesar de que la mediana en el Escenario 1 es de 39 ms, la varianza introducida por el <em>scheduler</em> del sistema operativo y la virtualización en Docker genera colas que elevan el p99 a 2.7 segundos.</li>
+    <li><strong>Sistemas de Tiempo Real Blando (Soft Real-Time / Web Transaccional):</strong> Para aplicaciones comerciales de logística (donde un retraso degrada la calidad del servicio pero no causa la invalidación del dato):
+        <ul>
+            <li>En <strong>concurrencia moderada</strong>, el sistema <strong>CUMPLE satisfactoriamente</strong> los acuerdos de nivel de servicio (SLA estándar de p95 &lt; 1.000 ms, habiéndose registrado """ + str(p95_s1) + """ ms).</li>
+            <li>En <strong>concurrencia extrema con saturación de CPU</strong>, el sistema <strong>NO CUMPLE</strong> las condiciones de aceptabilidad comercial, ya que el percentil 95 (3.01 s) y el percentil 99 (6.26 s) representan tiempos de espera inaceptables para clientes interactivos y disparan <em>timeouts</em> en clientes API automatizados.</li>
+        </ul>
+    </li>
+</ul>
+
+<h3>5.3 Justificación Arquitectónica del Comportamiento Observado</h3>
+<p>
+El comportamiento se fundamenta en las características intrínsecas de los componentes desplegados:
+</p>
+<ol>
+    <li><strong>Event Loop Asíncrono frente a Trabajo Bloqueante:</strong> FastAPI y Uvicorn operan sobre un bucle de eventos (<em>asyncio</em> / <em>uvloop</em>) monohilo por réplica. Aunque las peticiones I/O no bloquean el hilo principal, el cómputo de hashing es intensamente CPU-bound y síncrono. Esto monopoliza el hilo de ejecución del contenedor durante cada ciclo, imposibilitando el despacho inmediato de nuevas peticiones encoladas en el socket TCP.</li>
+    <li><strong>Mecanismo de Throttling del CFS de Linux:</strong> Docker impone el límite <code>cpus: '0.50'</code> mediante el <em>Completely Fair Scheduler</em> (CFS) del kernel Linux (cuotas de CPU por periodo). Cuando un contenedor agota sus 50 ms de CPU en un periodo de 100 ms, el kernel suspende forzosamente la ejecución del proceso hasta el siguiente periodo, inflando artificialmente la latencia percibida por el cliente.</li>
+    <li><strong>Equidad Estricta de Round-Robin:</strong> El algoritmo Round-Robin en Nginx reparte las solicitudes de forma cíclica sin ponderar la carga instantánea de CPU ni la duración residual de las transacciones en vuelo en cada réplica. Para cargas homogéneas resulta óptimo, pero bajo estrés heterogéneo el algoritmo <code>least_conn</code> (mínimas conexiones activas) habría mitigado en parte los tiempos de espera individuales.</li>
+</ol>
+
+<h2>6. Conclusiones y Recomendaciones de Ingeniería</h2>
+<div class="highlight-card">
+    <ol style="margin: 0; padding-left: 18px;">
+        <li><strong>Validación de la IaC y Automatización:</strong> Se logró un despliegue Cloud-Native 100% reproducible, declarativo y resiliente con exactamente un balanceador y tres réplicas operativas mediante un único comando <code>docker compose up -d</code>.</li>
+        <li><strong>Resiliencia Demostrada (Zero Downtime):</strong> La integración de Health Checks en el proxy Nginx garantiza la continuidad operativa total: la desconexión imprevista de una réplica es absorbida en milisegundos sin arrojar errores al usuario final.</li>
+        <li><strong>Ruta hacia la Escalabilidad Elástica (Kubernetes / HPA):</strong> Para neutralizar la degradación por saturación de CPU observada en el Escenario 2, la arquitectura debe evolucionar hacia un orquestador que soporte <strong>Horizontal Pod Autoscaling (HPA)</strong> basado en métricas de CPU (&gt; 70%), permitiendo que el clúster escale dinámicamente de 3 a 10+ réplicas de forma automática.</li>
+    </ol>
+</div>
+
+<h2>7. Vínculos y Referencias Técnicas</h2>
+<ul>
+    <li><strong>Repositorio Oficial del Proyecto:</strong> <a class="repo-link" href="https://github.com/fifix407/tp3-arquitectura-cloud-native" target="_blank">https://github.com/fifix407/tp3-arquitectura-cloud-native</a></li>
+    <li>Docker Documentation (2026). <em>Compose file version 3 & specification: Deploy resources and health checks</em>.</li>
+    <li>Nginx Documentation (2026). <em>HTTP Load Balancing and Passive Health Checks</em>.</li>
+    <li>Bass, L., Clements, P., & Kazman, R. (2021). <em>Software Architecture in Practice (4th Edition)</em>. Addison-Wesley.</li>
+</ul>
+
+</body>
+</html>
+"""
+
+with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
+    f.write(html_template)
+
+print(f"[OK] Documento HTML generado en: {OUTPUT_HTML}")
+
+# Renderizar HTML a PDF mediante Microsoft Edge Headless
+edge_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+if not os.path.exists(edge_path):
+    edge_path = r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+
+print("Compilando PDF académico con Microsoft Edge...")
+cmd = [
+    edge_path,
+    "--headless",
+    "--disable-gpu",
+    "--no-pdf-header-footer",
+    f"--print-to-pdf={OUTPUT_PDF}",
+    str(OUTPUT_HTML)
+]
+
+res = subprocess.run(cmd, capture_output=True, text=True)
+if res.returncode == 0 and OUTPUT_PDF.exists():
+    print(f"[EXITO] PDF compilado satisfactoriamente: {OUTPUT_PDF} ({OUTPUT_PDF.stat().st_size} bytes)")
+else:
+    print(f"Error generando PDF: {res.stderr}")

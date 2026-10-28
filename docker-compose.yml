@@ -1,0 +1,107 @@
+services:
+  # ============================================================================
+  # Balanceador de Carga (Reverse Proxy con Nginx y Health Checks)
+  # ============================================================================
+  loadbalancer:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: globallogistics_loadbalancer
+    ports:
+      - "${LB_PORT:-8080}:80"
+    restart: unless-stopped
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+      app3:
+        condition: service_healthy
+    networks:
+      - globallogistics_net
+
+  # ============================================================================
+  # Microservicio - Réplica 1
+  # ============================================================================
+  app1:
+    build:
+      context: ./microservice
+      dockerfile: Dockerfile
+    container_name: globallogistics_app_1
+    environment:
+      - INSTANCE_NAME=microservice-replica-1
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  # ============================================================================
+  # Microservicio - Réplica 2
+  # ============================================================================
+  app2:
+    build:
+      context: ./microservice
+      dockerfile: Dockerfile
+    container_name: globallogistics_app_2
+    environment:
+      - INSTANCE_NAME=microservice-replica-2
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  # ============================================================================
+  # Microservicio - Réplica 3
+  # ============================================================================
+  app3:
+    build:
+      context: ./microservice
+      dockerfile: Dockerfile
+    container_name: globallogistics_app_3
+    environment:
+      - INSTANCE_NAME=microservice-replica-3
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+# ==============================================================================
+# Red Virtual Bridge para Aislamiento y Comunicación Interna
+# ==============================================================================
+networks:
+  globallogistics_net:
+    driver: bridge
+    name: globallogistics_net

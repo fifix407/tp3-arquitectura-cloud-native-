@@ -1,0 +1,56 @@
+{
+  "scenario_1_moderada": {
+    "server_software": "nginx/1.31.8",
+    "server_hostname": "globallogistics_loadbalancer",
+    "concurrency_level": 100,
+    "time_taken": 8.912,
+    "complete_requests": 5000,
+    "failed_requests": 0,
+    "non_2xx_responses": 0,
+    "total_transferred": 2615000,
+    "requests_per_sec": 561.04,
+    "time_per_request_mean": 178.239,
+    "time_per_request_concurrent": 1.782,
+    "transfer_rate": 286.55,
+    "percentiles": {
+      "p50": 39,
+      "p66": 84,
+      "p75": 100,
+      "p80": 114,
+      "p90": 241,
+      "p95": 966,
+      "p98": 2425,
+      "p99": 2713,
+      "p100": 3045
+    },
+    "scenario": "scenario1_concurrencia_moderada",
+    "raw_output_file": "C:\\Users\\santi\\Documents\\antigravity\\agitated-volta\\benchmark_results\\scenario1_concurrencia_moderada.txt"
+  },
+  "scenario_2_extrema": {
+    "server_software": "nginx/1.31.8",
+    "server_hostname": "globallogistics_loadbalancer",
+    "concurrency_level": 100,
+    "time_taken": 14.646,
+    "complete_requests": 2500,
+    "failed_requests": 187,
+    "non_2xx_responses": 0,
+    "total_transferred": 947311,
+    "requests_per_sec": 170.7,
+    "time_per_request_mean": 585.827,
+    "time_per_request_concurrent": 5.858,
+    "transfer_rate": 63.17,
+    "percentiles": {
+      "p50": 177,
+      "p66": 258,
+      "p75": 365,
+      "p80": 415,
+      "p90": 913,
+      "p95": 3016,
+      "p98": 5766,
+      "p99": 6258,
+      "p100": 10578
+    },
+    "scenario": "scenario2_concurrencia_extrema",
+    "raw_output_file": "C:\\Users\\santi\\Documents\\antigravity\\agitated-volta\\benchmark_results\\scenario2_concurrencia_extrema.txt"
+  }
+}
