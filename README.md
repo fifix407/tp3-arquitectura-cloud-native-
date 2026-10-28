@@ -1,7 +1,7 @@
 # Trabajo Práctico N° 3: Despliegue de Arquitectura Cloud-Native
 
-**Licenciatura en Sistemas de Información – Arquitectura de Sistemas (Ciclo 2026)**  
-**Integrantes del Grupo:**
+**Licenciatura en Sistemas de Información – Arquitectura de Sistemas**  
+**Integrantes:**
 * Lucía Astorga
 * Emmanuel Bustos
 * Santiago Militello  
