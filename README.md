@@ -6,7 +6,7 @@
 * Emmanuel Bustos
 * Santiago Militello  
 **Caso de Estudio:** GlobalLogistics S.A. – Plataforma Distribuida de Rastreo y Telemetría  
-**Repositorio GitHub:** [https://github.com/fifix407/tp3-arquitectura-cloud-native](https://github.com/fifix407/tp3-arquitectura-cloud-native)
+**Repositorio GitHub:** [https://github.com/fifix407/tp3-arquitectura-cloud-native-](https://github.com/fifix407/tp3-arquitectura-cloud-native-)
 
 ---
 

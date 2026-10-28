@@ -242,7 +242,7 @@ html_template = """<!DOCTYPE html>
 <div class="meta-box">
     <div class="meta-item"><strong>Integrantes del Grupo:</strong> Lucía Astorga, Emmanuel Bustos, Santiago Militello</div>
     <div class="meta-item"><strong>Empresa Caso de Estudio:</strong> GlobalLogistics S.A.</div>
-    <div class="meta-item"><strong>Repositorio Público Git:</strong> <a class="repo-link" href="https://github.com/fifix407/tp3-arquitectura-cloud-native" target="_blank">github.com/fifix407/tp3-arquitectura-cloud-native</a></div>
+    <div class="meta-item"><strong>Repositorio Público Git:</strong> <a class="repo-link" href="https://github.com/fifix407/tp3-arquitectura-cloud-native-" target="_blank">github.com/fifix407/tp3-arquitectura-cloud-native-</a></div>
     <div class="meta-item"><strong>Fecha de Entrega:</strong> 02 de Noviembre de 2026</div>
 </div>
 
@@ -720,7 +720,7 @@ El comportamiento se fundamenta en las características intrínsecas de los comp
 
 <h2>7. Vínculos y Referencias Técnicas</h2>
 <ul>
-    <li><strong>Repositorio Oficial del Proyecto:</strong> <a class="repo-link" href="https://github.com/fifix407/tp3-arquitectura-cloud-native" target="_blank">https://github.com/fifix407/tp3-arquitectura-cloud-native</a></li>
+    <li><strong>Repositorio Oficial del Proyecto:</strong> <a class="repo-link" href="https://github.com/fifix407/tp3-arquitectura-cloud-native-" target="_blank">https://github.com/fifix407/tp3-arquitectura-cloud-native-</a></li>
     <li>Docker Documentation (2026). <em>Compose file version 3 & specification: Deploy resources and health checks</em>.</li>
     <li>Nginx Documentation (2026). <em>HTTP Load Balancing and Passive Health Checks</em>.</li>
     <li>Bass, L., Clements, P., & Kazman, R. (2021). <em>Software Architecture in Practice (4th Edition)</em>. Addison-Wesley.</li>
