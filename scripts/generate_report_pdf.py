@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generador del Informe Académico Formal en formato PDF para el Trabajo Práctico N° 3.
-Sincronizado al 100% con la estructura, capturas, tablas y análisis del documento DOCX.
+Sincronizado al 100% con la estructura, capturas, tablas, análisis y código fuente del documento DOCX.
 Utiliza Microsoft Edge en modo headless para compilar HTML+CSS a un PDF idéntico y profesional.
 """
 
@@ -24,6 +24,146 @@ img_cap2 = (img_dir / "Captura de pantalla 2026-11-01 193423.png").as_uri()
 img_cap3 = (img_dir / "Captura de pantalla 2026-11-01 190214.png").as_uri()
 img_cap4 = (img_dir / "Captura de pantalla 2026-11-01 190306.png").as_uri()
 
+docker_compose_text = """services:
+  # Balanceador de Carga Nginx (Reverse Proxy L7 con Health Checks)
+  loadbalancer:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: globallogistics_loadbalancer
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    depends_on:
+      app1: { condition: service_healthy }
+      app2: { condition: service_healthy }
+      app3: { condition: service_healthy }
+    networks:
+      - globallogistics_net
+
+  # Microservicio Réplica 1 (0.5 CPU, 512MB RAM)
+  app1:
+    build: { context: ./microservice, dockerfile: Dockerfile }
+    container_name: globallogistics_app_1
+    environment:
+      - INSTANCE_NAME=microservice-replica-1
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  # Microservicio Réplica 2 (Idéntica configuración)
+  app2:
+    build: { context: ./microservice, dockerfile: Dockerfile }
+    container_name: globallogistics_app_2
+    environment:
+      - INSTANCE_NAME=microservice-replica-2
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  # Microservicio Réplica 3 (Idéntica configuración)
+  app3:
+    build: { context: ./microservice, dockerfile: Dockerfile }
+    container_name: globallogistics_app_3
+    environment:
+      - INSTANCE_NAME=microservice-replica-3
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+networks:
+  globallogistics_net:
+    driver: bridge"""
+
+fastapi_text = """# Snippet clave del Microservicio en FastAPI (microservice/main.py)
+from fastapi import FastAPI, Request
+import socket, os, time
+
+app = FastAPI(title="GlobalLogistics S.A.")
+HOSTNAME = socket.gethostname()
+INSTANCE_NAME = os.getenv("INSTANCE_NAME", HOSTNAME)
+
+@app.get("/")
+async def root(request: Request):
+    # Requisito consigna: Retornar Hostname o Container ID
+    return {
+        "status": "success",
+        "container_id": HOSTNAME,
+        "hostname": HOSTNAME,
+        "instance_name": INSTANCE_NAME
+    }
+
+@app.get("/health")
+async def health():
+    return {"status": "UP", "container_id": HOSTNAME, "healthy": True}"""
+
+nginx_conf_text = """# Configuración del Balanceador de Carga Nginx L7 (nginx/nginx.conf)
+events { worker_connections 2048; }
+
+http {
+    # Clúster de réplicas: Round-Robin con Health Checks Pasivos
+    upstream microservices_backend {
+        server app1:8000 max_fails=3 fail_timeout=10s;
+        server app2:8000 max_fails=3 fail_timeout=10s;
+        server app3:8000 max_fails=3 fail_timeout=10s;
+        keepalive 32;
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        location / {
+            proxy_pass http://microservices_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+
+            # Tolerancia a fallos: reintento instantáneo ante caídas
+            proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+            proxy_next_upstream_tries 3;
+            proxy_connect_timeout 3s;
+            proxy_read_timeout 15s;
+
+            add_header X-Served-By $upstream_addr always;
+        }
+    }
+}"""
+
 html_content = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -32,20 +172,20 @@ html_content = f"""<!DOCTYPE html>
 <style>
     @page {{
         size: A4;
-        margin: 18mm 16mm 18mm 16mm;
+        margin: 16mm 14mm 16mm 14mm;
     }}
     body {{
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
         color: #2d3748;
-        line-height: 1.5;
-        font-size: 9pt;
+        line-height: 1.45;
+        font-size: 8.8pt;
         margin: 0;
         padding: 0;
     }}
     .header-banner {{
         border-bottom: 2px solid #2b6cb0;
         padding-bottom: 6px;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }}
     .univ-info {{
         font-size: 8pt;
@@ -56,14 +196,14 @@ html_content = f"""<!DOCTYPE html>
         margin-bottom: 2px;
     }}
     h1 {{
-        font-size: 15.5pt;
+        font-size: 15pt;
         color: #1a365d;
         margin: 2px 0;
         font-weight: 700;
         line-height: 1.2;
     }}
     .subtitle {{
-        font-size: 10pt;
+        font-size: 9.5pt;
         color: #2b6cb0;
         font-weight: 600;
         margin-bottom: 8px;
@@ -73,52 +213,72 @@ html_content = f"""<!DOCTYPE html>
         border: 1px solid #e2e8f0;
         border-left: 4px solid #3182ce;
         border-radius: 4px;
-        padding: 8px 12px;
-        font-size: 8.5pt;
-        margin-bottom: 14px;
+        padding: 7px 10px;
+        font-size: 8.2pt;
+        margin-bottom: 10px;
     }}
     .callout-green {{
         background-color: #f7fafc;
         border: 1px solid #e2e8f0;
         border-left: 4px solid #38a169;
         border-radius: 4px;
-        padding: 8px 12px;
-        font-size: 8.5pt;
-        margin-bottom: 14px;
+        padding: 7px 10px;
+        font-size: 8.2pt;
+        margin-bottom: 10px;
     }}
     .callout-blue {{
         background-color: #ebf8ff;
         border: 1px solid #bee3f8;
         border-left: 4px solid #3182ce;
         border-radius: 4px;
-        padding: 8px 12px;
-        font-size: 8.5pt;
-        margin-bottom: 14px;
+        padding: 7px 10px;
+        font-size: 8.2pt;
+        margin-bottom: 10px;
     }}
     .callout ul, .callout-blue ul, .callout-green ol {{
-        margin: 4px 0 0 16px;
+        margin: 3px 0 0 16px;
         padding: 0;
     }}
     .callout li, .callout-blue li, .callout-green li {{
-        margin-bottom: 4px;
+        margin-bottom: 3px;
     }}
     h2 {{
-        font-size: 11.5pt;
+        font-size: 11pt;
         color: #1a365d;
-        margin: 14px 0 6px 0;
-        padding-bottom: 3px;
+        margin: 12px 0 5px 0;
+        padding-bottom: 2px;
         border-bottom: 1px solid #e2e8f0;
     }}
     p {{
-        margin: 0 0 7px 0;
+        margin: 0 0 6px 0;
         text-align: justify;
+    }}
+    .code-box {{
+        background-color: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-left: 3px solid #3182ce;
+        border-radius: 4px;
+        padding: 6px 10px;
+        margin: 6px 0 10px 0;
+        font-family: 'Consolas', 'Courier New', monospace;
+        font-size: 7.2pt;
+        color: #1e293b;
+        white-space: pre-wrap;
+        line-height: 1.25;
+        page-break-inside: avoid;
+    }}
+    .code-title {{
+        font-size: 7.8pt;
+        font-weight: bold;
+        color: #2b6cb0;
+        margin: 6px 0 2px 0;
     }}
     .image-box {{
         background-color: #f8fafc;
         border: 1px solid #cbd5e1;
         border-radius: 6px;
-        padding: 8px;
-        margin: 10px 0 14px 0;
+        padding: 6px;
+        margin: 8px 0 10px 0;
         text-align: center;
         page-break-inside: avoid;
     }}
@@ -127,36 +287,35 @@ html_content = f"""<!DOCTYPE html>
         height: auto;
         border-radius: 4px;
         border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }}
     .image-caption {{
-        margin-top: 6px;
-        font-size: 8pt;
+        margin-top: 4px;
+        font-size: 7.8pt;
         color: #1a365d;
         font-weight: bold;
     }}
     .image-desc {{
-        font-size: 7.5pt;
+        font-size: 7.2pt;
         color: #64748b;
         font-style: italic;
-        margin-top: 2px;
+        margin-top: 1px;
     }}
     table {{
         width: 100%;
         border-collapse: collapse;
-        margin: 8px 0 6px 0;
-        font-size: 7pt;
+        margin: 6px 0 5px 0;
+        font-size: 6.8pt;
     }}
     th {{
         background-color: #1e3a8a;
         color: #ffffff;
         font-weight: 700;
-        padding: 4px 5px;
+        padding: 3px 4px;
         border: 1px solid #1e3a8a;
         text-align: center;
     }}
     td {{
-        padding: 4px 5px;
+        padding: 3px 4px;
         border: 1px solid #cbd5e1;
         color: #2d3748;
     }}
@@ -185,17 +344,17 @@ html_content = f"""<!DOCTYPE html>
         text-align: center;
     }}
     .note-text {{
-        font-size: 7.5pt;
+        font-size: 7.2pt;
         font-style: italic;
         color: #718096;
-        margin-bottom: 4px;
-        line-height: 1.35;
+        margin-bottom: 3px;
+        line-height: 1.3;
     }}
     .diag-text {{
-        font-size: 7.5pt;
+        font-size: 7.2pt;
         color: #2d3748;
-        margin-bottom: 10px;
-        line-height: 1.35;
+        margin-bottom: 8px;
+        line-height: 1.3;
     }}
     .page-break {{
         page-break-before: always;
@@ -245,6 +404,9 @@ Para garantizar reproducibilidad determinística y cumplir con las mejores prác
     <div class="image-desc">Evidencia de ejecución en terminal: 1 balanceador Nginx (globallogistics_loadbalancer en puerto 8080) y 3 réplicas de microservicio (globallogistics_app_1, 2, 3) en estado 'Up' y 'healthy'.</div>
 </div>
 
+<div class="code-title">📄 Manifiesto de Orquestación e Infraestructura como Código (docker-compose.yml)</div>
+<div class="code-box">{docker_compose_text}</div>
+
 <div class="page-break"></div>
 
 <h2>3. Implementación del Componente y Balanceo (Consigna 2 - 30 Puntos)</h2>
@@ -254,6 +416,12 @@ El microservicio fue implementado en Python 3.12 con FastAPI sobre el servidor A
 <p>
 Nginx actúa como Reverse Proxy L7 con balanceo Round-Robin y Health Checks pasivos mediante <code>max_fails=3</code> y <code>fail_timeout=10s</code>. La directiva <code>proxy_next_upstream</code> asegura que, ante cualquier fallo o timeout en una réplica, la petición se reintente de inmediato contra otra réplica viva (Zero Downtime).
 </p>
+
+<div class="code-title">📄 Implementación del Microservicio (microservice/main.py)</div>
+<div class="code-box">{fastapi_text}</div>
+
+<div class="code-title">📄 Configuración del Balanceador de Carga L7 (nginx/nginx.conf)</div>
+<div class="code-box">{nginx_conf_text}</div>
 
 <div class="image-box">
     <img src="{img_cap2}" alt="Captura 2: verify_loadbalancing.ps1">
@@ -468,7 +636,6 @@ if res.returncode == 0 and OUTPUT_PDF.exists():
     dest_pdf = desktop / "TP3_Arquitectura_Cloud_Native_Astorga_Bustos_Militello.pdf"
     shutil.copyfile(OUTPUT_PDF, dest_pdf)
     
-    # También actualizar el nombre corto en Desktop para comodidad
     short_pdf = desktop / "TP3_Arquitectura_Cloud_Native.pdf"
     shutil.copyfile(OUTPUT_PDF, short_pdf)
     

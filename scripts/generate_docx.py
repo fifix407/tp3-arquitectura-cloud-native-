@@ -63,6 +63,43 @@ def add_callout(doc, text_list, bg_hex="F7FAFC", border_hex="3182CE"):
         run.font.color.rgb = COLOR_TEXT
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
 
+def add_code_block(doc, code_str, title_text=""):
+    if title_text:
+        p_t = doc.add_paragraph()
+        p_t.paragraph_format.space_before = Pt(6)
+        p_t.paragraph_format.space_after = Pt(2)
+        r_t = p_t.add_run(f"📄 {title_text}")
+        r_t.font.name = "Segoe UI"
+        r_t.font.bold = True
+        r_t.font.size = Pt(8.5)
+        r_t.font.color.rgb = COLOR_SECONDARY
+
+    table = doc.add_table(rows=1, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = table.cell(0, 0)
+    set_cell_background(cell, "F8FAFC")
+    
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcBorders = parse_xml(
+        f'<w:tcBorders {nsdecls("w")}>'
+        f'<w:top w:val="single" w:sz="6" w:space="0" w:color="CBD5E1"/>'
+        f'<w:left w:val="single" w:sz="18" w:space="0" w:color="3182CE"/>'
+        f'<w:bottom w:val="single" w:sz="6" w:space="0" w:color="CBD5E1"/>'
+        f'<w:right w:val="single" w:sz="6" w:space="0" w:color="CBD5E1"/>'
+        f'</w:tcBorders>'
+    )
+    tcPr.append(tcBorders)
+    
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_before = Pt(4)
+    p.paragraph_format.space_after = Pt(4)
+    p.paragraph_format.line_spacing = 1.05
+    run = p.add_run(code_str.strip())
+    run.font.name = "Consolas"
+    run.font.size = Pt(7.5)
+    run.font.color.rgb = RGBColor(30, 41, 59)
+    doc.add_paragraph().paragraph_format.space_after = Pt(4)
+
 def add_image_box(doc, img_path, caption_title, description_text):
     table = doc.add_table(rows=1, cols=1)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -205,6 +242,93 @@ add_image_box(
     "Evidencia de ejecución en terminal: 1 balanceador Nginx (globallogistics_loadbalancer en puerto 8080) y 3 réplicas de microservicio (globallogistics_app_1, 2, 3) en estado 'Up' y 'healthy'."
 )
 
+# 2.1 Código Fuente del Manifiesto docker-compose.yml
+docker_compose_code = """services:
+  # Balanceador de Carga Nginx (Reverse Proxy L7 con Health Checks)
+  loadbalancer:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: globallogistics_loadbalancer
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    depends_on:
+      app1: { condition: service_healthy }
+      app2: { condition: service_healthy }
+      app3: { condition: service_healthy }
+    networks:
+      - globallogistics_net
+
+  # Microservicio Réplica 1 (0.5 CPU, 512MB RAM)
+  app1:
+    build: { context: ./microservice, dockerfile: Dockerfile }
+    container_name: globallogistics_app_1
+    environment:
+      - INSTANCE_NAME=microservice-replica-1
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  # Microservicio Réplica 2 (Idéntica configuración)
+  app2:
+    build: { context: ./microservice, dockerfile: Dockerfile }
+    container_name: globallogistics_app_2
+    environment:
+      - INSTANCE_NAME=microservice-replica-2
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+  # Microservicio Réplica 3 (Idéntica configuración)
+  app3:
+    build: { context: ./microservice, dockerfile: Dockerfile }
+    container_name: globallogistics_app_3
+    environment:
+      - INSTANCE_NAME=microservice-replica-3
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - globallogistics_net
+
+networks:
+  globallogistics_net:
+    driver: bridge"""
+
+add_code_block(doc, docker_compose_code, "Manifiesto de Orquestación e Infraestructura como Código (docker-compose.yml)")
+
 # ------------------------------------------------------------------------------
 # 3. IMPLEMENTACIÓN DEL COMPONENTE Y BALANCEO (CONSIGNA 2)
 # ------------------------------------------------------------------------------
@@ -226,6 +350,66 @@ p = doc.add_paragraph(
 )
 p.paragraph_format.line_spacing = 1.15
 p.paragraph_format.space_after = Pt(6)
+
+fastapi_code = """# Snippet clave del Microservicio en FastAPI (microservice/main.py)
+from fastapi import FastAPI, Request
+import socket, os, time
+
+app = FastAPI(title="GlobalLogistics S.A.")
+HOSTNAME = socket.gethostname()
+INSTANCE_NAME = os.getenv("INSTANCE_NAME", HOSTNAME)
+
+@app.get("/")
+async def root(request: Request):
+    # Requisito consigna: Retornar Hostname o Container ID
+    return {
+        "status": "success",
+        "container_id": HOSTNAME,
+        "hostname": HOSTNAME,
+        "instance_name": INSTANCE_NAME
+    }
+
+@app.get("/health")
+async def health():
+    return {"status": "UP", "container_id": HOSTNAME, "healthy": True}"""
+
+add_code_block(doc, fastapi_code, "Implementación del Microservicio (microservice/main.py)")
+
+nginx_conf_code = """# Configuración del Balanceador de Carga Nginx L7 (nginx/nginx.conf)
+events { worker_connections 2048; }
+
+http {
+    # Clúster de réplicas: Round-Robin con Health Checks Pasivos
+    upstream microservices_backend {
+        server app1:8000 max_fails=3 fail_timeout=10s;
+        server app2:8000 max_fails=3 fail_timeout=10s;
+        server app3:8000 max_fails=3 fail_timeout=10s;
+        keepalive 32;
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        location / {
+            proxy_pass http://microservices_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+
+            # Tolerancia a fallos: reintento instantáneo ante caídas
+            proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+            proxy_next_upstream_tries 3;
+            proxy_connect_timeout 3s;
+            proxy_read_timeout 15s;
+
+            add_header X-Served-By $upstream_addr always;
+        }
+    }
+}"""
+
+add_code_block(doc, nginx_conf_code, "Configuración del Balanceador de Carga L7 (nginx/nginx.conf)")
 
 add_image_box(
     doc,
@@ -394,4 +578,4 @@ conclusiones = [
 add_callout(doc, conclusiones, bg_hex="F7FAFC", border_hex="38A169")
 
 doc.save(str(output_path))
-print(f"[EXITO] Documento DOCX actualizado con imágenes incrustadas: {output_path}")
+print(f"[EXITO] Documento DOCX actualizado con código fuente incrustado: {output_path}")
