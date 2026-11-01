@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Guía Maestra de Estudio y Defensa Oral - TP N° 3 Cloud-Native</title>
+<style>
+    @page {
+        size: A4;
+        margin: 18mm 16mm 18mm 16mm;
+        @bottom-right {
+            content: "Página " counter(page);
+            font-size: 8pt;
+            color: #718096;
+        }
+    }
+    body {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+        color: #1a202c;
+        line-height: 1.5;
+        font-size: 9.2pt;
+        margin: 0;
+        padding: 0;
+    }
+    h1 {
+        font-size: 15.5pt;
+        color: #1a365d;
+        border-bottom: 2.5px solid #2b6cb0;
+        padding-bottom: 6px;
+        margin-top: 0;
+        margin-bottom: 12px;
+    }
+    h2 {
+        font-size: 12pt;
+        color: #2c5282;
+        border-bottom: 1.5px solid #cbd5e0;
+        padding-bottom: 3px;
+        margin-top: 18px;
+        margin-bottom: 8px;
+        page-break-after: avoid;
+    }
+    h3 {
+        font-size: 10pt;
+        color: #2d3748;
+        margin-top: 12px;
+        margin-bottom: 4px;
+        page-break-after: avoid;
+    }
+    p {
+        margin-top: 0;
+        margin-bottom: 6px;
+        text-align: justify;
+    }
+    code {
+        font-family: 'Consolas', monospace;
+        font-size: 8pt;
+        background-color: #edf2f7;
+        padding: 1px 4px;
+        border-radius: 3px;
+        color: #c53030;
+    }
+    pre {
+        font-family: 'Consolas', monospace;
+        font-size: 7.2pt;
+        background-color: #0f172a;
+        color: #e2e8f0;
+        padding: 8px 10px;
+        border-radius: 5px;
+        line-height: 1.35;
+        margin: 6px 0 10px 0;
+        page-break-inside: avoid;
+    }
+    .quote-box {
+        background-color: #f8fafc;
+        border-left: 4px solid #3b82f6;
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin: 6px 0 10px 0;
+        font-size: 8.8pt;
+        color: #1e3a8a;
+        page-break-inside: avoid;
+    }
+    ul, ol {
+        margin-top: 3px;
+        margin-bottom: 6px;
+        padding-left: 20px;
+    }
+    li {
+        margin-bottom: 2px;
+    }
+    hr {
+        border: 0;
+        border-top: 1px solid #e2e8f0;
+        margin: 14px 0;
+    }
+</style>
+</head>
+<body>
+<h1>GUÍA MAESTRA DE ESTUDIO, ARQUITECTURA Y DEFENSA ORAL</h1>
+<h2>TRABAJO PRÁCTICO N° 3: DESPLIEGUE DE ARQUITECTURA CLOUD-NATIVE</h2>
+<p><strong>Cátedra:</strong> Arquitectura de Sistemas – Licenciatura en Sistemas de Información (Ciclo 2026)  </p>
+<p><strong>Caso de Estudio:</strong> GlobalLogistics S.A. – Plataforma Distribuida de Telemetría y Carga  </p>
+<p><strong>Equipo de Trabajo:</strong> Lucía Astorga, Emmanuel Bustos, Santiago Militello  </p>
+<p><strong>Repositorio GitHub Oficial:</strong> https://github.com/fifix407/tp3-arquitectura-cloud-native-  </p>
+<hr/>
+<h2>⚡ RESUMEN EJECUTIVO RÁPIDO (ELEVATOR PITCH DEL TP3)</h2>
+<div class='quote-box'>**¿De qué se trata este trabajo en 1 minuto?**  </div>
+<div class='quote-box'>Para la empresa de transporte **GlobalLogistics S.A.**, diseñamos y desplegamos una arquitectura de microservicios en **Docker** automatizada con un solo comando (`docker compose up -d`).  </div>
+<div class='quote-box'>Cuenta con **1 balanceador de carga Nginx** (Capa 7) que reparte el tráfico en ciclo **Round-Robin** entre **3 réplicas idénticas de una API REST en Python (FastAPI)** dentro de una red virtual privada.  </div>
+<div class='quote-box'>Cada réplica responde obligatoriamente su **ID de contenedor único** y tiene límites estrictos de hardware (`0.5 CPU` y `512 MB de RAM`).  </div>
+<div class='quote-box'>Si una réplica se cae, Nginx la saca del clúster automáticamente mediante **Health Checks** y reenvía las peticiones a las réplicas vivas con **cero errores para el usuario (Zero Downtime)**.  </div>
+<div class='quote-box'>Finalmente, sometimos el sistema a pruebas reales con **Apache Benchmark (100 usuarios concurrentes)**: demostramos que el sistema vuela en consultas normales de telemetría (**561 peticiones por segundo con 39 ms de mediana**), pero colapsa cuando se le exige cálculo matemático pesado de rutas (**la latencia sube a 3 y 6 segundos**), demostrando experimentalmente por qué una arquitectura moderna debe escalar elásticamente con Kubernetes ante picos de CPU.</div>
+<hr/>
+<h2>📌 ÍNDICE GENERAL DEL DOCUMENTO</h2>
+<p>1. El Problema de Negocio y el Desafío de Ingeniería</p>
+<p>2. Topología de la Arquitectura Cloud-Native Diseñada</p>
+<p>3. Todo lo que se Construyó en Docker (Paso a Paso Exhaustivo)</p>
+<p>4. Infraestructura como Código (docker-compose.yml al detalle)</p>
+<p>5. La Capa de Enrutamiento y Balanceo L7 (Nginx y Health Checks)</p>
+<p>6. El Microservicio REST (FastAPI, Uvicorn e Inyección de Hostname)</p>
+<p>7. Pruebas de Carga Reales con Apache Benchmark (Escenarios 1 y 2)</p>
+<p>8. Análisis Crítico Formal y Evaluación de Tiempo Real</p>
+<p>9. Banco Extendido de Preguntas y Respuestas para el Coloquio</p>
+<p>10. Glosario de Términos Clave para la Defensa Oral</p>
+<p>11. Bitácora Completa de Comandos Utilizados y Qué Hace Cada Uno</p>
+<p>12. Chaos Engineering: Cómo "Romper" el Sistema, Qué Pasa y Cómo se Mitiga</p>
+<hr/>
+<h2>🏢 1. EL PROBLEMA DE NEGOCIO Y EL DESAFÍO DE INGENIERÍA</h2>
+<h3>1.1 Contexto de "GlobalLogistics S.A."</h3>
+<p>GlobalLogistics S.A. es un operador logístico internacional que gestiona flotas de transporte terrestre, aéreo y marítimo. Cada camión, barco y centro de distribución envía de forma constante telemetría GPS, confirmación de despachos y solicita recálculos de optimización de rutas de entrega.</p>
+<h3>1.2 El Problema Previo</h3>
+<p>La empresa venía operando sobre un sistema monolítico tradicional desplegado en un servidor único. Durante picos comerciales (como CyberMonday o Black Friday), la avalancha de consultas de seguimiento por parte de clientes y los pedidos de optimización de rutas provocaban que el servidor saturara su CPU, encolara las solicitudes y arrojara errores de timeout (504 Gateway Timeout), paralizando las operaciones.</p>
+<h3>1.3 El Desafío Asignado a Nuestro Equipo</h3>
+<p>Como Arquitectos Cloud, la dirección técnica nos encomendó diseñar, desplegar y validar un entorno de prueba que demuestre:</p>
+<p>1. <strong>Infraestructura como Código (IaC):</strong> Despliegue 100% automatizado, reproducible y sin configuración manual.</p>
+<p>2. <strong>Escalabilidad Horizontal:</strong> Un clúster de microservicios con múltiples réplicas idénticas capaces de absorber carga en paralelo.</p>
+<p>3. <strong>Alta Disponibilidad y Resiliencia:</strong> Integración de un balanceador de carga que detecte automáticamente cuándo una réplica está enferma o caída (*Health Checks*) y enrute el tráfico sin que el usuario final perciba fallas (*Zero Downtime*).</p>
+<p>4. <strong>Validación Experimental de Rendimiento:</strong> Someter la infraestructura a pruebas de estrés con herramientas estándar de la industria (Apache Benchmark) para determinar con precisión matemática sus límites de saturación y su cumplimiento de restricciones de tiempo real.</p>
+<hr/>
+<h2>🏗️ 2. TOPOLOGÍA DE LA ARQUITECTURA CLOUD-NATIVE DISEÑADA</h2>
+<p>La solución implementa una arquitectura desacoplada en tres capas fundamentales:</p>
+<pre>
+                          [ USUARIOS / APIS / BENCHMARK ]
+                                         │
+                                 Puerto Host :8080
+                                         ▼
+        ┌─────────────────────────────────────────────────────────────────┐
+        │                 CAPA 1: BALANCEADOR DE CARGA L7                 │
+        │             Contenedor: globallogistics_loadbalancer            │
+        │             Software: Nginx 1.31 sobre Alpine Linux             │
+        │             Rol: Reverse Proxy, SSL Termination, Enrutamiento   │
+        │             Algoritmo: Round-Robin Equitativo                   │
+        │             Health Checks: Pasivos (max_fails=3, 10s)           │
+        └────────────────────────────────┬────────────────────────────────┘
+                                         │
+                                Red Virtual Bridge
+                              globallogistics_net
+                                         │
+                 ┌───────────────────────┼───────────────────────┐
+                 │                       │                       │
+                 ▼                       ▼                       ▼
+        ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+        │  CAPA 2: APP 1  │     │  CAPA 2: APP 2  │     │  CAPA 2: APP 3  │
+        │globallogistics_ │     │globallogistics_ │     │globallogistics_ │
+        │      app_1      │     │      app_2      │     │      app_3      │
+        │                 │     │                 │     │                 │
+        │ FastAPI+Uvicorn │     │ FastAPI+Uvicorn │     │ FastAPI+Uvicorn │
+        │ Python 3.12     │     │ Python 3.12     │     │ Python 3.12     │
+        │ Limite CPU: 0.5 │     │ Limite CPU: 0.5 │     │ Limite CPU: 0.5 │
+        │ RAM: 512 MB     │     │ RAM: 512 MB     │     │ RAM: 512 MB     │
+        │ Port: 8000/tcp  │     │ Port: 8000/tcp  │     │ Port: 8000/tcp  │
+        │ ID: 4b2d0d7b0413│     │ ID: af6d89c7cf0d│     │ ID: 6f70282afe14│
+        └─────────────────┘     └─────────────────┘     └─────────────────┘
+</pre>
+<h3>Principios Arquitectónicos Aplicados:</h3>
+<ul>
+<li>**Separación de Responsabilidades:** Nginx se ocupa exclusivamente de la terminación de conexiones TCP, encolamiento de buffers y distribución de tráfico. Los microservicios solo ejecutan la lógica de negocio.</li>
+<li>**Seguridad Perimetral (Least Privilege Networking):** Ninguna réplica de microservicio tiene puertos expuestos al exterior. Si un atacante intenta escanear los puertos de la máquina host, solo verá el puerto 8080 del balanceador. Los puertos 8000 de las apps son inaccesibles desde fuera de la red virtual de Docker.</li>
+<li>**Apatridia (Statelessness):** Las 3 réplicas son completamente intercambiables. Ninguna guarda estado de sesión en memoria local, lo que permite apagar, reiniciar o añadir réplicas sin afectar la coherencia de la aplicación.</li>
+</ul>
+<hr/>
+<h2>🐳 3. TODO LO QUE SE CONSTRUYÓ EN DOCKER (PASO A PASO EXHAUSTIVO)</h2>
+<p>Para responder con autoridad si los profesores preguntan *"¿Qué hicieron en Docker?"*, acá tenés el desglose exacto de cada paso técnico realizado en el daemon:</p>
+<h3>3.1 Creación de la Red Virtual Bridge (`globallogistics_net`)</h3>
+<p>No usamos la red por defecto (<code>bridge</code> default) porque esta no incluye resolución de nombres DNS interna de Docker.</p>
+<ul>
+<li>**Qué se hizo:** Se definió una red dedicada con el driver `bridge`.</li>
+<li>**Beneficio técnico:** Permite que los contenedores se resuelvan entre sí mediante sus nombres de host lógicos (`http://app1:8000`, `http://app2:8000`, `http://app3:8000`), independientemente de la dirección IP efímera que Docker les asigne dinámicamente al iniciar.</li>
+</ul>
+<h3>3.2 Construcción de la Imagen del Microservicio (`microservice/Dockerfile`)</h3>
+<ul>
+<li>**Imagen Base:** Se eligió `python:3.12-slim` en lugar de la imagen de Python completa. La versión *slim* pesa menos de 150 MB frente a los casi 1 GB de la estándar, reduciendo la superficie de vulnerabilidades de seguridad y acelerando los tiempos de build y despliegue.</li>
+<li>**Instalación de Dependencias:** Se copió únicamente `requirements.txt` en un paso previo para aprovechar el sistema de capas de caché de Docker (`Docker Layer Caching`). De esta manera, si se modifica el código en `main.py`, Docker no necesita reinstalar las librerías de Python.</li>
+<li>**Healthcheck Interno:** Se inyectó una instrucción `HEALTHCHECK` nativa de Docker dentro del Dockerfile:</li>
+</ul>
+<p>  <code></code>`dockerfile</p>
+<p>  HEALTHCHECK --interval=10s --timeout=3s --retries=3 --start-period=5s \</p>
+<p>      CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1</p>
+<p>  <code></code>`</p>
+<p>  Esto permite que el motor de Docker verifique por sí mismo si el microservicio sigue con vida cada 10 segundos.</p>
+<h3>3.3 Construcción de la Imagen del Balanceador (`nginx/Dockerfile`)</h3>
+<ul>
+<li>**Imagen Base:** `nginx:alpine`, la versión más ligera y eficiente del servidor web Nginx (menos de 25 MB).</li>
+<li>**Sobrescritura de Configuración:** Se copió nuestro archivo personalizado `nginx.conf` directamente a `/etc/nginx/nginx.conf`, eliminando la configuración por defecto de Nginx para asegurar que solo responda a los endpoints y reglas de nuestro clúster.</li>
+</ul>
+<h3>3.4 Contenedor Efímero para Apache Benchmark</h3>
+<p>Para que las pruebas de estrés fueran 100% reproducibles en cualquier computadora sin necesidad de instalar Apache en Windows:</p>
+<ul>
+<li>Descargamos y corrimos la imagen oficial de Apache HTTP Server en versión Alpine (`httpd:alpine`).</li>
+<li>Ejecutamos el binario `ab` embebido conectándolo a la misma red de Docker (`--network globallogistics_net`).</li>
+</ul>
+<hr/>
+<h2>📜 4. INFRAESTRUCTURA COMO CÓDIGO (docker-compose.yml AL DETALLE)</h2>
+<p>El archivo <code>docker-compose.yml</code> es el cerebro que orquesta todo el despliegue con un único comando. A continuación, el análisis técnico de sus directivas clave:</p>
+<h3>4.1 Coordinación de Inicio y Dependencias Saludables</h3>
+<pre>
+depends_on:
+  app1:
+    condition: service_healthy
+  app2:
+    condition: service_healthy
+  app3:
+    condition: service_healthy
+</pre>
+<ul>
+<li>**Por qué es crucial:** En Docker Compose básico, `depends_on` solo espera a que el contenedor comience a correr, pero el proceso de Python dentro aún puede estar cargando en memoria. Al usar `condition: service_healthy`, Nginx **espera activamente a que las 3 réplicas respondan exitosamente al endpoint `/health`**. Así se elimina el riesgo de que el balanceador envíe peticiones a un contenedor que todavía está arrancando.</li>
+</ul>
+<h3>4.2 Aislamiento y Cuotas de Recursos (Control de Saturación)</h3>
+<pre>
+deploy:
+  resources:
+    limits:
+      cpus: '0.50'
+      memory: 512M
+</pre>
+<ul>
+<li>**Mapeo al Kernel de Linux:** Docker utiliza los mecanismos de **cgroups (Control Groups)** y el planificador **CFS (Completely Fair Scheduler)** del kernel. Al asignarle `0.50` CPUs, el kernel le otorga al contenedor una cuota de 50 milisegundos de tiempo de CPU por cada periodo de 100 milisegundos.</li>
+<li>**Justificación en el TP:** Este límite estricto permitió que en el laboratorio pudiéramos inducir saturación de CPU de manera exacta, controlada y sin colapsar la máquina anfitriona.</li>
+</ul>
+<hr/>
+<h2>⚖️ 5. LA CAPA DE ENRUTAMIENTO Y BALANCEO L7 (NGINX Y HEALTH CHECKS)</h2>
+<p>Nginx opera en la Capa 7 del modelo OSI (Capa de Aplicación), lo que le permite inspeccionar encabezados HTTP, rutas URL y códigos de estado.</p>
+<h3>5.1 Configuración del Upstream y Health Checks Pasivos</h3>
+<pre>
+upstream microservices_backend {
+    server app1:8000 max_fails=3 fail_timeout=10s;
+    server app2:8000 max_fails=3 fail_timeout=10s;
+    server app3:8000 max_fails=3 fail_timeout=10s;
+    keepalive 32;
+}
+</pre>
+<ul>
+<li>**Algoritmo Round-Robin:** Al no declarar otra directiva como `ip_hash` o `least_conn`, Nginx aplica Round-Robin puro, distribuyendo secuencialmente: Petición 1 ➔ `app1`, Petición 2 ➔ `app2`, Petición 3 ➔ `app3`, Petición 4 ➔ `app1`.</li>
+<li>**Health Checks Pasivos (`max_fails=3 fail_timeout=10s`):** Nginx no bombardea a los servidores con pings continuos innecesarios; en su lugar, monitorea las peticiones reales. Si una réplica falla 3 veces consecutivas, la declara "no disponible" y deja de enviarle tráfico durante 10 segundos. Cumplido ese plazo, le envía una petición de prueba para verificar si ya se recuperó.</li>
+<li>**Reutilización de Conexiones (`keepalive 32`):** Mantiene un pool de 32 sockets TCP abiertos entre Nginx y las réplicas, evitando el costo temporal de abrir y cerrar conexiones TCP en cada request (handshake SYN/ACK).</li>
+</ul>
+<h3>5.2 Resiliencia y Conmutación por Error (Zero Downtime)</h3>
+<pre>
+proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+proxy_next_upstream_tries 3;
+proxy_next_upstream_timeout 5s;
+</pre>
+<ul>
+<li>**Mecanismo:** Si Nginx le pasa una solicitud a la Réplica 2 y esta se apaga, se congela o devuelve un error 500, Nginx **no le devuelve el error al cliente**. De forma transparente y en milisegundos, reintenta esa misma solicitud contra la Réplica 3 o 1. El usuario final recibe un código 200 OK y jamás se entera de la falla interna.</li>
+</ul>
+<h3>5.3 Encabezados de Trazabilidad</h3>
+<pre>
+add_header X-Served-By $upstream_addr always;
+add_header X-Upstream-Response-Time $upstream_response_time always;
+</pre>
+<ul>
+<li>Cada respuesta HTTP enviada al cliente incluye en sus encabezados la dirección IP interna del contenedor que procesó la orden y los milisegundos exactos que tardó esa réplica en responder.</li>
+</ul>
+<hr/>
+<h2>🐍 6. EL MICROSERVICIO REST (FASTAPI, UVICORN E INYECCIÓN DE HOSTNAME)</h2>
+<p>El microservicio fue desarrollado en Python 3.12 utilizando <strong>FastAPI</strong> como framework web y <strong>Uvicorn</strong> como servidor ASGI asíncrono.</p>
+<h3>6.1 Endpoint Principal y Captura Obligatoria del Hostname / Container ID</h3>
+<pre>
+@app.get("/")
+async def root(request: Request):
+    return {
+        "status": "success",
+        "service": "GlobalLogistics S.A. - Fleet & Tracking Service",
+        "container_id": socket.gethostname(),
+        "hostname": socket.gethostname(),
+        "instance_name": os.getenv("INSTANCE_NAME", socket.gethostname()),
+        "client_ip": request.client.host if request.client else "unknown",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "architecture": "Cloud-Native Microservices",
+        "load_balanced": True
+    }
+</pre>
+<ul>
+<li>**El truco técnico del Container ID:** La función estándar `socket.gethostname()` consulta la llamada al sistema `uname(2)` del kernel. Dentro de los contenedores Docker en Linux, el motor de Docker asigna como hostname del sistema operativo los primeros 12 caracteres hexadecimales del ID único del contenedor. Así se cumple de manera 100% nativa con la consigna 2.</li>
+</ul>
+<h3>6.2 Endpoint de Diagnóstico y Salud (`/health`)</h3>
+<pre>
+@app.get("/health")
+async def health():
+    return {
+        "status": "UP",
+        "healthy": True,
+        "container_id": socket.gethostname(),
+        "uptime_seconds": round(time.time() - START_TIME, 2),
+        "memory_rss_mb": get_memory_rss_mb()
+    }
+</pre>
+<ul>
+<li>Permite verificar en tiempo real cuántos segundos lleva encendida la instancia y cuánta memoria física residente (RSS) está consumiendo en megabytes.</li>
+</ul>
+<h3>6.3 Endpoint de Carga CPU-Intensiva (`/stress`)</h3>
+<pre>
+@app.get("/stress")
+async def stress(iterations: Optional[int] = 2500):
+    start_calc = time.perf_counter()
+    data = f"GlobalLogistics-RouteOptimization-{socket.gethostname()}".encode()
+    digest = data
+    for _ in range(iterations):
+        digest = hashlib.sha256(digest).digest()
+    return {
+        "status": "processed",
+        "container_id": socket.gethostname(),
+        "iterations": iterations,
+        "duration_seconds": round(time.perf_counter() - start_calc, 4)
+    }
+</pre>
+<ul>
+<li>Simula una carga de procesamiento pesado (algoritmo de optimización de rutas y criptografía de seguridad) mediante 2.500 rondas encadenadas de cálculo SHA-256 en bucle cerrado. Esto fuerza a la CPU al 100% de uso durante el ciclo.</li>
+</ul>
+<hr/>
+<h2>📈 7. PRUEBAS DE CARGA REALES CON APACHE BENCHMARK (ESCENARIOS 1 Y 2)</h2>
+<p>Las pruebas se ejecutaron mediante scripts automatizados en Python (<code>scripts/run_benchmarks.py</code>) utilizando Apache Benchmark montado en la red virtual de Docker.</p>
+<h3>7.1 Tabla Comparativa de Resultados Reales Obtenidos</h3>
+<p>| Atributo / Métrica Temporal | Escenario 1: Tráfico Moderado (I/O) | Escenario 2: Estrés Extremo (Saturación CPU) | Variación e Impacto |</p>
+<p>| :--- | :---: | :---: | :---: |</p>
+<p>| <strong>Endpoint Evaluado</strong> | <code>GET /</code> (Telemetría / Consulta) | <code>GET /stress?iterations=2500</code> (Cómputo) | Tipo de carga |</p>
+<p>| <strong>Volumen de Peticiones (N)</strong> | 5.000 peticiones | 2.500 peticiones | Volumen calibrado |</p>
+<p>| <strong>Nivel de Concurrencia (C)</strong> | 100 usuarios simultáneos | 100 usuarios simultáneos | Paridad de concurrencia |</p>
+<p>| <strong>Throughput (Capacidad)</strong> | <strong>561.04 req/segundo</strong> | <strong>170.70 req/segundo</strong> | 🔻 <strong>-69.5% de caída</strong> |</p>
+<p>| <strong>Latencia Promedio (Mean)</strong> | <strong>178.24 ms</strong> | <strong>585.83 ms</strong> | 🔺 <strong>+228.7% de lentitud</strong> |</p>
+<p>| <strong>Mediana (Percentil 50 - p50)</strong>| <strong>39 ms</strong> | <strong>177 ms</strong> | 🔺 <strong>+353.8% de lentitud</strong> |</p>
+<p>| <strong>Percentil 75 (p75)</strong> | <strong>94 ms</strong> | <strong>396 ms</strong> | Inicio de degradación |</p>
+<p>| <strong>Percentil 95 (p95)</strong> | <strong>966 ms</strong> | <strong>3.016 ms (3.01 seg)</strong> | 🔺 <strong>3 veces más lento</strong> |</p>
+<p>| <strong>Percentil 99 (p99)</strong> | <strong>2.713 ms</strong> | <strong>6.258 ms (6.26 seg)</strong> | 🔺 <strong>Cola larga crítica</strong> |</p>
+<p>| <strong>Tasa de Éxito HTTP (2xx)</strong> | <strong>100.00% (0 errores)</strong> | <strong>92.52% (éxito en la mayoría)</strong> | Colas en buffers |</p>
+<h3>7.2 Interpretación de los Dos Escenarios</h3>
+<p>1. <strong>Escenario 1 (Régimen Elástico):</strong></p>
+<p>   * El 50% de los usuarios recibió su respuesta en apenas <strong>39 milisegundos</strong>.</p>
+<p>   * El 75% tardó menos de <strong>94 milisegundos</strong>.</p>
+<p>   * Las tres réplicas absorbieron holgadamente más de 560 pedidos por segundo sin fallar un solo paquete de red.</p>
+<p>2. <strong>Escenario 2 (Régimen de Saturación de CPU):</strong></p>
+<p>   * Al exigir cálculo intensivo, la capacidad de procesamiento se desploma a 170 req/s.</p>
+<p>   * La mediana sube a 177 ms, pero a partir del p75 la curva se vuelve exponencial: el percentil 95 llega a <strong>3 segundos</strong> y el 99 a <strong>más de 6 segundos</strong>.</p>
+<hr/>
+<h2>🧠 8. ANÁLISIS CRÍTICO FORMAL Y EVALUACIÓN DE TIEMPO REAL</h2>
+<p>Esta es la parte teórica que más valoran los docentes en la materia de Arquitectura de Sistemas:</p>
+<h3>8.1 ¿En qué punto exacto se degrada el sistema?</h3>
+<p>El punto de degradación se produce en la <strong>transición de operaciones I/O-bound hacia operaciones CPU-bound</strong>:</p>
+<ul>
+<li>Cuando las peticiones son de lectura simple, el cuello de botella es la red y el event loop asíncrono de FastAPI las procesa en milisegundos sin bloquear hilos.</li>
+<li>Cuando las peticiones requieren cálculo matemático pesado (SHA-256), monopolizan el hilo principal de Python. Como tenemos 100 clientes concurrentes compitiendo por un clúster acotado a 1.5 núcleos de CPU (0.5 cores x 3 réplicas), el planificador del kernel Linux suspende las réplicas que agotan su cuota de 50 ms por ciclo (*CFS Throttling*). Las peticiones comienzan a encolarse en el buffer del socket TCP, provocando un retraso acumulativo exponencial.</li>
+</ul>
+<h3>8.2 ¿Cumple con Restricciones de Tiempo Real?</h3>
+<p>En la ingeniería de software existen dos grandes tipos de sistemas de tiempo real:</p>
+<p>1. <strong>Sistemas de Tiempo Real Estricto (Hard Real-Time):</strong></p>
+<p>   * Son sistemas donde incumplir un plazo de entrega (*deadline*, por ejemplo tardar más de 50 ms) es considerado una falla catastrófica (ej. frenos ABS de autos, marcapasos o control aéreo).</p>
+<p>   * <strong>Conclusión:</strong> Nuestra arquitectura <strong>NO CUMPLE bajo ninguna circunstancia</strong>. A pesar de que la mediana en el Escenario 1 es de 39 ms, la varianza introducida por el sistema operativo y la virtualización genera que el percentil 99 llegue a 2.7 segundos.</p>
+<p>2. <strong>Sistemas de Tiempo Real Blando (Soft Real-Time / Web Transaccional):</strong></p>
+<p>   * Son sistemas donde un retraso degrada la calidad de la experiencia pero no invalida los datos ni destruye el sistema (ej. seguimiento de envíos de paquetes).</p>
+<p>   * <strong>Conclusión en Tráfico Moderado:</strong> <strong>CUMPLE</strong> con los acuerdos de nivel de servicio comerciales estándar (SLA de p95 < 1.000 ms, habiéndose registrado 966 ms).</p>
+<p>   * <strong>Conclusión en Saturación de CPU:</strong> <strong>NO CUMPLE</strong>, ya que latencias de 3 a 6 segundos provocarían que los usuarios abandonen la página o que las aplicaciones móviles disparen timeouts de red.</p>
+<h3>8.3 Justificación Arquitectónica del Comportamiento</h3>
+<ul>
+<li>**Limitación del GIL y Concurrencia Monohilo:** CPython posee un *Global Interpreter Lock (GIL)*. Aunque FastAPI es asíncrono, las tareas de cálculo pesado en un solo proceso bloquean el bucle de eventos. Para tareas CPU-bound en producción, se requeriría configurar múltiples workers por réplica (`--workers 2` o más) o derivar el trabajo a colas de tareas en segundo plano (Celery / RabbitMQ / Redis).</li>
+<li>**Comportamiento del Algoritmo Round-Robin:** Round-Robin es ciego al estado interno de los contenedores. Si la Réplica 1 está procesando una ruta que tarda 500 ms y la Réplica 2 terminó su tarea en 10 ms, Round-Robin seguirá enviando solicitudes a la Réplica 1 en su turno. Un algoritmo `least_conn` habría redirigido el tráfico hacia la réplica con menos conexiones activas.</li>
+</ul>
+<h3>8.4 Solución Cloud-Native Recomendada</h3>
+<p>Para solucionar el problema observado en el Escenario 2 sin intervención humana, la arquitectura debe evolucionar hacia un orquestador de contenedores como <strong>Kubernetes</strong>:</p>
+<ul>
+<li>Configurar un **HPA (Horizontal Pod Autoscaler)** basado en la métrica `targetCPUUtilizationPercentage: 70%`.</li>
+<li>Cuando el clúster detecte que las 3 réplicas superan el 70% de uso de procesador, el autoscaler instanciará automáticamente réplicas adicionales (escalando de 3 a 10 pods) y Nginx distribuirá la carga entre más núcleos de cálculo.</li>
+</ul>
+<hr/>
+<h2>❓ 9. BANCO EXTENDIDO DE PREGUNTAS Y RESPUESTAS PARA EL COLOQUIO</h2>
+<h3>Pregunta 1: "¿Por qué el docker-compose.yml tiene exactamente 3 réplicas y no usaron la directiva `scale`?"</h3>
+<div class='quote-box'>**Respuesta del alumno:**  </div>
+<div class='quote-box'>"Definimos explícitamente tres servicios (`app1`, `app2`, `app3`) para poder configurarles de forma determinística nombres de contenedor fijos (`globallogistics_app_1`, etc.), variables de entorno individuales (`INSTANCE_NAME`) y dependencias estrictas de salud (`service_healthy`) con Nginx. Si bien `docker compose up --scale app=3` es válido para escalado dinámico, definir las instancias explícitamente en el manifiesto nos garantizó asignarles nombres fijos en el bloque `upstream` de Nginx y límites de CPU individuales exactos de 0.5 cores a cada una."</div>
+<h3>Pregunta 2: "¿Cómo comprobaron que el balanceador realmente estaba alternando entre instancias?"</h3>
+<div class='quote-box'>**Respuesta del alumno:**  </div>
+<div class='quote-box'>"Desarrollamos un script automatizado en PowerShell (`scripts/verify_loadbalancing.ps1`) que ejecutó 15 peticiones consecutivas al puerto 8080. Capturamos los campos `container_id` e `instance_name` de cada respuesta HTTP y generamos una tabla donde se observa una alternancia cíclica perfecta: 5 solicitudes fueron atendidas por la réplica 1, 5 por la réplica 2 y 5 por la réplica 3, confirmando una distribución simétrica exacta del 33.3%."</div>
+<h3>Pregunta 3: "¿Qué sucede si una réplica se cae en mitad de una operación? ¿El usuario ve un error?"</h3>
+<div class='quote-box'>**Respuesta del alumno:**  </div>
+<div class='quote-box'>"No, el usuario no ve ningún error gracias a la directiva `proxy_next_upstream` que configuramos en `nginx.conf`. Si la réplica que tenía asignada la petición se cae o devuelve error 502/504, Nginx intercepta ese fallo y reenvía inmediatamente la petición a otra réplica viva del pool antes de cerrar la conexión con el cliente. Hicimos la prueba apagando manualmente el contenedor `globallogistics_app_2` con `docker stop` y el sistema continuó funcionando con cero tiempo de inactividad (Zero Downtime)."</div>
+<h3>Pregunta 4: "¿Por qué es un error guiarse únicamente por la latencia promedio?"</h3>
+<div class='quote-box'>**Respuesta del alumno:**  </div>
+<div class='quote-box'>"Porque el promedio es una métrica engañosa que esconde la mala experiencia de los usuarios en la cola larga. Por ejemplo, en nuestro Escenario 2 el promedio dio 585 ms, lo que parecería aceptable. Sin embargo, al analizar los percentiles descubrimos que el percentil 95 sufrió una espera de 3.016 ms (más de 3 segundos) y el percentil 99 superó los 6.2 segundos. En arquitecturas modernas y contratos de SLA, la calidad del servicio se mide en p95 y p99 para proteger a los usuarios más desfavorecidos."</div>
+<h3>Pregunta 5: "¿Por qué las réplicas no exponen puertos hacia Windows en el archivo Compose?"</h3>
+<div class='quote-box'>**Respuesta del alumno:**  </div>
+<div class='quote-box'>"Por el principio de seguridad de Mínimo Privilegio y Aislamiento de Red. El único punto de entrada público de la arquitectura debe ser el balanceador de carga en el puerto 8080. Las réplicas se comunican internamente a través de la red virtual privada `globallogistics_net`. Si publicáramos los puertos de las réplicas en `0.0.0.0:8000`, cualquier cliente externo podría eludir el balanceador de carga y saturar una réplica específica de forma directa."</div>
+<h3>Pregunta 6: "¿Qué diferencia existe entre un Health Check Activo y uno Pasivo?"</h3>
+<div class='quote-box'>**Respuesta del alumno:**  </div>
+<div class='quote-box'>"Un Health Check Activo envía periódicamente solicitudes sintéticas a un endpoint (`/health`) para consultar si el servicio está vivo (es lo que hace Docker con la instrucción `HEALTHCHECK` cada 10 segundos). Un Health Check Pasivo, en cambio, no genera tráfico adicional; monitorea el tráfico real de los clientes. Nginx utiliza Health Checks pasivos con `max_fails=3`: si detecta que 3 peticiones reales de usuarios fallan contra una réplica, concluye que está enferma y la suspende temporalmente durante 10 segundos."</div>
+<hr/>
+<h2>📖 10. GLOSARIO DE TÉRMINOS CLAVE PARA LA DEFENSA ORAL</h2>
+<ul>
+<li>**IaC (Infraestructura como Código):** Práctica de gestionar y aprovisionar infraestructura informática a través de archivos de definición legibles por máquina (como `docker-compose.yml`), en lugar de configuraciones físicas o herramientas interactivas manuales.</li>
+<li>**Reverse Proxy (Proxy Inverso):** Servidor intermedio que se sitúa frente a uno o más servidores web, interceptando las solicitudes entrantes de los clientes y reenviándolas al servidor de backend correspondiente.</li>
+<li>**Round-Robin:** Algoritmo de planificación y balanceo que distribuye las solicitudes a través de una lista de servidores en orden circular secuencial.</li>
+<li>**Throughput (RPS):** Cantidad de peticiones completadas con éxito por unidad de tiempo, típicamente expresada en *Requests Per Second (req/s)*.</li>
+<li>**Percentil 95 (p95):** Umbral temporal en el cual el 95% de las solicitudes se completaron en un tiempo menor o igual a dicho valor, y solo el 5% de las solicitudes fue más lenta.</li>
+<li>**CFS Throttling:** Mecanismo del kernel Linux por el cual un proceso dentro de un contenedor es suspendido temporalmente por haber consumido la cuota de CPU asignada dentro de su periodo de tiempo.</li>
+<li>**SLA (Service Level Agreement):** Compromiso formal entre un proveedor de servicios y un cliente sobre métricas mínimas de rendimiento y disponibilidad (ej. p95 < 1 segundo y disponibilidad > 99.9%).</li>
+</ul>
+<hr/>
+<h2>⚙️ 11. BITÁCORA COMPLETA DE COMANDOS UTILIZADOS Y QUÉ HACE CADA UNO</h2>
+<p>Si los profesores preguntan *"¿Qué comandos usaron para armar, probar y monitorear esto?"*, acá tenés la lista completa con su explicación técnica:</p>
+<h3>11.1 Gestión y Orquestación del Clúster (Docker Compose)</h3>
+<ul>
+<li>`docker compose up -d --build`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Compila los dos Dockerfiles (<code>microservice</code> y <code>nginx</code>), crea la red virtual <code>globallogistics_net</code>, levanta los 4 contenedores en segundo plano (<code>-d</code>) e inicia la supervisión de Health Checks.</p>
+<ul>
+<li>`docker compose ps`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Muestra el estado del clúster de Compose (si están corriendo, los puertos mapeados y si su estado es <code>healthy</code> o <code>starting</code>).</p>
+<ul>
+<li>`docker compose down -v`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Detiene todos los contenedores del clúster, destruye la red virtual privada y borra cualquier volumen anónimo o caché asociada.</p>
+<h3>11.2 Inspección y Monitoreo del Motor Docker</h3>
+<ul>
+<li>`docker ps --filter "name=globallogistics"`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Lista únicamente los contenedores pertenecientes al proyecto de GlobalLogistics con su ID, imagen, comando y puertos.</p>
+<ul>
+<li>`docker stats --no-stream`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Muestra una instantánea en tiempo real del consumo de hardware de cada contenedor (porcentaje de CPU, memoria RAM utilizada vs. límite de 512 MB, I/O de red y cantidad de procesos/PIDs).</p>
+<ul>
+<li>`docker logs globallogistics_loadbalancer`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Muestra los registros de acceso y error de Nginx, permitiendo ver a qué IP interna de réplica reenvió cada petición entrante.</p>
+<ul>
+<li>`docker logs globallogistics_app_1`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Muestra los logs internos de FastAPI/Uvicorn dentro de la Réplica 1 (peticiones HTTP recibidas, códigos de retorno y Health Checks periódicos).</p>
+<h3>11.3 Ejecución de Pruebas de Estrés (Apache Benchmark)</h3>
+<ul>
+<li>`docker run --rm --network globallogistics_net httpd:alpine ab -n 5000 -c 100 http://globallogistics_loadbalancer/`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong></p>
+<p>    * <code>--rm</code>: Elimina el contenedor de Apache una vez que termina el benchmark para no dejar basura en el disco.</p>
+<p>    * <code>--network globallogistics_net</code>: Conecta la herramienta de prueba directamente a la red privada de los microservicios para evitar retardos externos de Windows.</p>
+<p>    * <code>-n 5000</code>: Dispara un total de 5.000 peticiones HTTP.</p>
+<p>    * <code>-c 100</code>: Mantiene 100 usuarios virtuales haciendo solicitudes de forma estrictamente simultánea (concurrencia).</p>
+<ul>
+<li>`docker run --rm --network globallogistics_net httpd:alpine ab -n 2500 -c 100 http://globallogistics_loadbalancer/stress?iterations=2500`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Ejecuta el Escenario 2 atacando el endpoint de cómputo criptográfico intensivo con 100 usuarios concurrentes para saturar intencionalmente los 0.5 cores de CPU de cada réplica.</p>
+<h3>11.4 Scripts de Automatización y Verificación</h3>
+<ul>
+<li>`powershell -ExecutionPolicy Bypass -File scripts\verify_loadbalancing.ps1`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Envía 15 solicitudes consecutivas al balanceador, mide los milisegundos de cada una, extrae el <code>container_id</code> y <code>instance_name</code>, e imprime una tabla de distribución para demostrar el balanceo Round-Robin.</p>
+<ul>
+<li>`python scripts\run_benchmarks.py`</li>
+</ul>
+<p>  * <strong>Qué hace:</strong> Automatiza la ejecución sucesiva del Escenario 1 y Escenario 2, parsea los textos de salida de Apache Benchmark con expresiones regulares y exporta los resultados estructurados a <code>benchmark_results/summary.json</code>.</p>
+<hr/>
+<h2>💥 12. CHAOS ENGINEERING: CÓMO SE PUEDE "ROMPER" EL SISTEMA, QUÉ PASA Y CÓMO SE MITIGA</h2>
+<p>En las defensas orales, los docentes de Arquitectura suelen hacer preguntas del tipo: *"¿Qué pasa si falla X componente?"* o *"¿Cómo harías caer esta arquitectura?"*. </p>
+<p>A continuación se detallan los 5 escenarios reales de falla, cómo reacciona el sistema hoy y cómo se solucionaría a nivel profesional:</p>
+<hr/>
+<h3>Escenario A: Caída de una Réplica de Microservicio (Falla de Nodo)</h3>
+<ul>
+<li>**Cómo se provoca:**</li>
+</ul>
+<p>  <code></code>`powershell</p>
+<p>  docker stop globallogistics_app_2</p>
+<p>  <code></code>`</p>
+<ul>
+<li>**Qué sucede en el sistema:**</li>
+</ul>
+<p>  1. El contenedor <code>app_2</code> se apaga por completo.</p>
+<p>  2. Nginx intenta enviarle una petición en su turno Round-Robin y detecta que el socket TCP está cerrado (conexión rechazada).</p>
+<p>  3. <strong>Mecanismo de Resiliencia:</strong> Como configuramos <code>proxy_next_upstream error timeout</code>, Nginx no le devuelve un error 502 al usuario. Reintenta esa misma petición en milisegundos contra <code>app_1</code> o <code>app_3</code>.</p>
+<p>  4. Por la directiva <code>max_fails=3 fail_timeout=10s</code>, tras 3 fallos Nginx excluye a <code>app_2</code> del pool y solo reparte entre <code>app_1</code> y <code>app_3</code> (reparto 50% y 50%).</p>
+<p>  5. El usuario experimenta <strong>Zero Downtime (cero tiempo de inactividad)</strong>.</p>
+<ul>
+<li>**Cómo se mitiga si se caen las 3 réplicas:**</li>
+</ul>
+<p>  Si las 3 réplicas se apagan, Nginx devolverá <code>502 Bad Gateway</code>. La mitigación en producción es configurar una página estática de contingencia con la directiva <code>error_page 502 /maintenance.html;</code> informando al usuario que el servicio se está reiniciando.</p>
+<hr/>
+<h3>Escenario B: Caída del Balanceador de Carga (Single Point of Failure - SPOF)</h3>
+<ul>
+<li>**Cómo se provoca:**</li>
+</ul>
+<p>  <code></code>`powershell</p>
+<p>  docker stop globallogistics_loadbalancer</p>
+<p>  <code></code>`</p>
+<ul>
+<li>**Qué sucede en el sistema:**</li>
+</ul>
+<p>  * <strong>Colapso total del punto de entrada:</strong> Las 3 réplicas siguen vivas y saludables en su red privada, pero ningún cliente puede comunicarse con ellas porque el puerto <code>8080</code> deja de responder (<code>ERR_CONNECTION_REFUSED</code>).</p>
+<ul>
+<li>**Por qué ocurre:** En la arquitectura solicitada por el TP, hay exactamente **un (1) balanceador de carga**. Esto constituye un **Punto Único de Falla (SPOF)**.</li>
+<li>**Cómo se mitiga en la vida real (Respuesta para los profesores):**</li>
+</ul>
+<p>  > "En un entorno Cloud de producción real no se despliega un Nginx solitario. Se utiliza:</p>
+<p>  > 1. Un par de balanceadores Nginx en clúster activo-pasivo gestionados por <strong>Keepalived</strong> con una <strong>IP Virtual Flotante (VIP) mediante VRRP</strong>. Si el Nginx principal se apaga, el secundario toma la IP en milisegundos.</p>
+<p>  > 2. O directamente se delega la Capa 7 en un balanceador administrado por la nube como <strong>AWS Application Load Balancer (ALB)</strong> o <strong>Google Cloud Load Balancing</strong>, que cuentan con redundancia multi-zona de disponibilidad automática."</p>
+<hr/>
+<h3>Escenario C: Ataque de Denegación de Servicio por Saturación de CPU (DDoS / Storm)</h3>
+<ul>
+<li>**Cómo se provoca:**</li>
+</ul>
+<p>  Ejecutar Apache Benchmark con 500 usuarios concurrentes pidiendo 50.000 iteraciones de cálculo:</p>
+<p>  <code></code>`powershell</p>
+<p>  docker run --rm --network globallogistics_net httpd:alpine ab -n 5000 -c 500 http://globallogistics_loadbalancer/stress?iterations=50000</p>
+<p>  <code></code>`</p>
+<ul>
+<li>**Qué sucede en el sistema:**</li>
+</ul>
+<p>  1. Cada petición monopoliza el hilo de Python calculando hashes SHA-256 sin soltar la CPU.</p>
+<p>  2. Cada contenedor alcanza su límite de <code>cpus: '0.50'</code>. El planificador del kernel Linux suspende los procesos (*CFS Throttling*) al agotar su cuota de 50 ms por ciclo.</p>
+<p>  3. Las peticiones entrantes colapsan la cola de conexiones del socket TCP (el <code>backlog</code>).</p>
+<p>  4. Nginx alcanza el <code>proxy_read_timeout 15s</code> esperando que los microservicios le respondan y comienza a devolver errores <strong>504 Gateway Timeout</strong>.</p>
+<ul>
+<li>**Cómo se mitiga:**</li>
+</ul>
+<p>  1. <strong>Rate Limiting en Nginx:</strong> Configurar en <code>nginx.conf</code>:</p>
+<p>     <code></code>`nginx</p>
+<p>     limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;</p>
+<p>     limit_req zone=api_limit burst=20 nodelay;</p>
+<p>     <code></code>`</p>
+<p>     Esto impide que un solo cliente dispare cientos de pedidos por segundo, respondiéndole <code>429 Too Many Requests</code>.</p>
+<p>  2. <strong>Arquitectura Asíncrona con Colas:</strong> No ejecutar tareas CPU-intensivas sincrónicamente en el endpoint HTTP. El microservicio debe recibir la solicitud, encolarla en un broker como <strong>RabbitMQ o Apache Kafka</strong>, responderle <code>202 Accepted</code> de inmediato al cliente, y procesar el cálculo con workers secundarios en segundo plano.</p>
+<hr/>
+<h3>Escenario D: Fuga de Memoria (Memory Leak / OOM Kill)</h3>
+<ul>
+<li>**Cómo se provoca:**</li>
+</ul>
+<p>  Si un desarrollador introduce un error en Python acumulando datos en una lista global sin limpiarla:</p>
+<p>  <code></code>`python</p>
+<p>  leak_list = []</p>
+<p>  @app.get("/leak")</p>
+<p>  async def leak():</p>
+<p>      leak_list.append("A" * 10_000_000) # Llena 10 MB de RAM en cada llamada</p>
+<p>  <code></code>`</p>
+<ul>
+<li>**Qué sucede en el sistema:**</li>
+</ul>
+<p>  1. La memoria del contenedor empieza a subir: 100 MB, 200 MB, 400 MB...</p>
+<p>  2. Al llegar a los <code>512M</code> definidos en el límite de <code>docker-compose.yml</code>, el demonio de Linux dispara el <strong>Out Of Memory Killer (OOM-Killer)</strong>.</p>
+<p>  3. El kernel mata instantáneamente el proceso de Python enviándole una señal <code>SIGKILL</code> (código de salida 137).</p>
+<p>  4. Docker Compose detecta la muerte del proceso y, por la directiva <code>restart: unless-stopped</code>, reinicia el contenedor desde cero.</p>
+<ul>
+<li>**Cómo se mitiga:**</li>
+</ul>
+<p>  * Mantener los límites de memoria en el manifiesto IaC para evitar que un contenedor con fuga consuma la memoria física de la máquina host y voltee a los demás servicios.</p>
+<p>  * Implementar métricas de observabilidad (Prometheus + Grafana) monitoreando el consumo de memoria mediante el endpoint <code>/health</code>.</p>
+<hr/>
+<h3>Escenario E: Desincronización de Health Checks (Zombi / Deadlock)</h3>
+<ul>
+<li>**Cómo se provoca:**</li>
+</ul>
+<p>  Un microservicio queda atrapado en un bucle infinito que no satura la CPU (ej. esperando un bloqueo de base de datos o un socket colgado), pero no puede responder peticiones HTTP.</p>
+<ul>
+<li>**Qué sucede en el sistema:**</li>
+</ul>
+<p>  1. El proceso sigue corriendo para el sistema operativo, por lo que Docker cree que el contenedor está vivo.</p>
+<p>  2. Sin embargo, el chequeo interno de salud de Docker:</p>
+<p>     <code>CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"</code></p>
+<p>     se pasa del <code>timeout: 3s</code>.</p>
+<p>  3. Tras 3 intentos fallidos (<code>retries: 3</code>), Docker marca el contenedor con el estado <strong>unhealthy (no saludable)</strong>.</p>
+<p>  4. Al mismo tiempo, Nginx detecta el timeout en las peticiones reales y lo excluye mediante <code>max_fails=3</code>.</p>
+<ul>
+<li>**Cómo se mitiga:**</li>
+</ul>
+<p>  Configurar un <strong>Liveness Probe</strong> con reinicio automático: en Kubernetes, cuando un pod pasa a estado *unhealthy*, el orquestador lo mata y levanta un pod completamente nuevo y fresco de forma automática.</p>
+</body>
+</html>

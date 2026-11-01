@@ -1,0 +1,297 @@
+#!/usr/bin/env python3
+"""
+Compilador a PDF de la Guía de Estudio y Defensa Oral para el TP3.
+"""
+
+import os
+import subprocess
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+HTML_PATH = BASE_DIR / "guia_estudio.html"
+PDF_PATH = BASE_DIR / "GUIA_ESTUDIO_Y_DEFENSA_ORAL.pdf"
+
+html_content = """<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Guía de Estudio y Defensa Oral - TP N° 3 Arquitectura Cloud-Native</title>
+<style>
+    @page {
+        size: A4;
+        margin: 18mm 16mm 18mm 16mm;
+    }
+    body {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+        color: #1a202c;
+        line-height: 1.5;
+        font-size: 9.5pt;
+        margin: 0;
+        padding: 0;
+    }
+    .header-banner {
+        border-bottom: 3px solid #2b6cb0;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+    .univ-info {
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #4a5568;
+        font-weight: 600;
+        margin-bottom: 3px;
+    }
+    h1 {
+        font-size: 16pt;
+        color: #1a365d;
+        margin: 4px 0;
+        font-weight: 700;
+    }
+    .subtitle {
+        font-size: 10.5pt;
+        color: #2b6cb0;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .meta-box {
+        background-color: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #3182ce;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 8.5pt;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px 14px;
+        margin-bottom: 16px;
+    }
+    h2 {
+        font-size: 12pt;
+        color: #2c5282;
+        border-bottom: 1.5px solid #e2e8f0;
+        padding-bottom: 3px;
+        margin-top: 18px;
+        margin-bottom: 8px;
+        page-break-after: avoid;
+    }
+    h3 {
+        font-size: 10pt;
+        color: #2d3748;
+        margin-top: 12px;
+        margin-bottom: 4px;
+        page-break-after: avoid;
+    }
+    p {
+        margin-top: 0;
+        margin-bottom: 6px;
+        text-align: justify;
+    }
+    code {
+        font-family: 'Consolas', monospace;
+        font-size: 8pt;
+        background-color: #edf2f7;
+        padding: 1px 4px;
+        border-radius: 3px;
+        color: #c53030;
+    }
+    pre {
+        font-family: 'Consolas', monospace;
+        font-size: 7.5pt;
+        background-color: #1a202c;
+        color: #e2e8f0;
+        padding: 8px 10px;
+        border-radius: 5px;
+        line-height: 1.35;
+        margin: 6px 0 10px 0;
+        page-break-inside: avoid;
+    }
+    .card {
+        background-color: #ebf8ff;
+        border-left: 4px solid #3182ce;
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin: 8px 0;
+        font-size: 8.5pt;
+    }
+    .qa-box {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        page-break-inside: avoid;
+    }
+    .qa-question {
+        font-weight: 700;
+        color: #1e3a8a;
+        margin-bottom: 4px;
+        font-size: 9.5pt;
+    }
+    .qa-answer {
+        color: #334155;
+        font-size: 8.8pt;
+        line-height: 1.45;
+    }
+    .badge {
+        display: inline-block;
+        padding: 1px 5px;
+        font-size: 7pt;
+        font-weight: bold;
+        border-radius: 3px;
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    .page-break {
+        page-break-before: always;
+    }
+    ul, ol {
+        margin-top: 3px;
+        margin-bottom: 6px;
+        padding-left: 20px;
+    }
+    li {
+        margin-bottom: 2px;
+    }
+</style>
+</head>
+<body>
+
+<div class="header-banner">
+    <div class="univ-info">Licenciatura en Sistemas de Información — Arquitectura de Sistemas (Ciclo 2026)</div>
+    <h1>Guía de Estudio y Defensa Oral: TP N° 3 Cloud-Native</h1>
+    <div class="subtitle">Conceptos Clave, Justificación Arquitectónica y Banco de Preguntas y Respuestas</div>
+</div>
+
+<div class="meta-box">
+    <div><strong>Integrantes:</strong> Lucía Astorga, Emmanuel Bustos, Santiago Militello</div>
+    <div><strong>Caso de Estudio:</strong> GlobalLogistics S.A.</div>
+    <div><strong>Tecnologías:</strong> Docker, Nginx, Python (FastAPI), Apache Benchmark</div>
+    <div><strong>Documento:</strong> Exclusivo para el equipo (no subido a GitHub)</div>
+</div>
+
+<h2>1. ¿Cuál era el objetivo central del trabajo?</h2>
+<p>
+El equipo de ingeniería de <strong>GlobalLogistics S.A.</strong> diseñó una arquitectura distribuida para soportar sus operaciones logísticas críticas (rastreo de cargas, optimización de rutas y telemetría de flotas). Como Arquitectos Cloud, el desafío consistió en implementar un entorno de prueba en contenedores que demuestre:
+</p>
+<ul>
+    <li>Despliegue automatizado y declarativo mediante <strong>Infraestructura como Código (docker-compose.yml)</strong>.</li>
+    <li><strong>Escalabilidad horizontal</strong> sin intervención manual mediante réplicas de microservicios.</li>
+    <li>Alta disponibilidad, tolerancia a fallos y resiliencia con un balanceador L7 (Nginx) y <strong>Health Checks</strong>.</li>
+    <li>Evaluación rigurosa de atributos no funcionales (<strong>latencia, percentiles y concurrencia</strong>) usando <strong>Apache Benchmark</strong> bajo tráfico moderado y estrés extremo por saturación de CPU.</li>
+</ul>
+
+<h2>2. Estructura de la Arquitectura en Contenedores</h2>
+<p>La topología está compuesta por 4 contenedores dentro de una red virtual privada (<code>globallogistics_net</code>):</p>
+<pre>
+               [ Cliente / Navegador / Apache Benchmark ]
+                                   │  (Puerto host :8080)
+                                   ▼
+        ┌──────────────────────────────────────────────────────┐
+        │        Balanceador de Carga Nginx (Reverse Proxy)     │
+        │           Contenedor: globallogistics_loadbalancer   │
+        │           Algoritmo: Round-Robin                     │
+        │           Health Checks: pasivos (max_fails=3)       │
+        └──────────────────────────┬───────────────────────────┘
+                                   │ Red privada Docker: globallogistics_net
+                ┌──────────────────┼──────────────────┐
+                ▼                  ▼                  ▼
+       ┌─────────────────┐┌─────────────────┐┌─────────────────┐
+       │   Réplica 1     ││   Réplica 2     ││   Réplica 3     │
+       │ globallogistics ││ globallogistics ││ globallogistics │
+       │     _app_1      ││     _app_2      ││     _app_3      │
+       │ Python/FastAPI  ││ Python/FastAPI  ││ Python/FastAPI  │
+       │ CPU: 0.5 Cores  ││ CPU: 0.5 Cores  ││ CPU: 0.5 Cores  │
+       │ RAM: 512 MB     ││ RAM: 512 MB     ││ RAM: 512 MB     │
+       └─────────────────┘└─────────────────┘└─────────────────┘
+</pre>
+
+<h2>3. Decisiones Técnicas Fundamentales</h2>
+<ul>
+    <li><strong>Aislamiento de Red:</strong> Las réplicas <code>app1</code>, <code>app2</code> y <code>app3</code> no publican puertos hacia Windows (no usan <code>ports: 8000:8000</code>). Solo el balanceador Nginx tiene visibilidad hacia ellas dentro de la red interna de Docker. Esto garantiza seguridad perimetral.</li>
+    <li><strong>Identificación de Instancia (Container ID):</strong> En el endpoint <code>GET /</code>, Python ejecuta <code>socket.gethostname()</code>. En Docker Linux, el hostname es automáticamente el identificador único del contenedor (los 12 primeros caracteres hexadecimales).</li>
+    <li><strong>Límites de Hardware en IaC:</strong> Se acotó cada réplica a <code>cpus: '0.50'</code> y <code>memory: 512M</code>. De esta forma, el clúster dispone de 1.5 cores agregados, permitiendo medir con exactitud el comportamiento de saturación cuando 100 clientes concurrentes demandan procesamiento pesado.</li>
+    <li><strong>Arranque Condicional:</strong> Con <code>depends_on: { app: { condition: service_healthy } }</code>, Nginx no abre su puerto hasta que las 3 réplicas superen su chequeo interno de salud (<code>/health</code>).</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2>4. Resumen de las Pruebas de Estrés (Apache Benchmark)</h2>
+<p>
+Se ejecutaron dos ensayos reales desde un contenedor oficial de Apache Benchmark montado en la misma red de Docker:
+</p>
+<ul>
+    <li><strong>Escenario 1 (Concurrencia Moderada - I/O Ligero):</strong> 5.000 peticiones, 100 usuarios concurrentes a <code>GET /</code>.<br>
+    <em>Resultados:</em> <strong>561 req/seg</strong> | Latencia media: <strong>178 ms</strong> | Mediana (p50): <strong>39 ms</strong> | p95: <strong>966 ms</strong> | p99: <strong>2.713 ms</strong> | Errores: <strong>0%</strong>.
+    </li>
+    <li><strong>Escenario 2 (Concurrencia Extrema - Saturación CPU):</strong> 2.500 peticiones con hashing criptográfico SHA-256 reiterativo a <code>GET /stress?iterations=2500</code> con 100 usuarios concurrentes.<br>
+    <em>Resultados:</em> Throughput cayó a <strong>170 req/seg</strong> (🔻 <strong>-69.5%</strong>) | Latencia media: <strong>585 ms</strong> | p50: <strong>177 ms</strong> | p95: <strong>3.016 ms (3 seg)</strong> | p99: <strong>6.258 ms (6.2 seg)</strong> | Errores: <strong>7.5%</strong> por saturación de colas TCP.
+    </li>
+</ul>
+
+<h2>5. Análisis Crítico: Las Claves para Defender el Informe</h2>
+<div class="card">
+    <ol>
+        <li><strong>Punto de Degradación:</strong> Ocurre cuando la carga pasa de I/O a CPU-bound. Al haber 100 clientes pidiendo cómputo y solo 1.5 cores disponibles, el planificador del kernel Linux (CFS) suspende temporalmente los contenedores que agotaron su cuota de 50 ms por ciclo, provocando colas de espera que disparan la latencia de 177 ms (p50) a 3 y 6 segundos (p95 y p99).</li>
+        <li><strong>Restricciones de Tiempo Real:</strong>
+            <ul>
+                <li><strong>Hard Real-Time:</strong> <strong>NO CUMPLE</strong> bajo ninguna circunstancia, ya que un fallo en el deadline (&lt; 50 ms) es inaceptable y el p99 supera los 2 segundos por la varianza del sistema operativo.</li>
+                <li><strong>Soft Real-Time (Web Transaccional):</strong> <strong>CUMPLE en tráfico moderado</strong> (p95 &lt; 1.000 ms, registrando 966 ms), pero <strong>NO CUMPLE bajo saturación de CPU</strong>, pues demoras de 3 a 6 segundos violan los estándares de comercio digital y provocan desconexiones.</li>
+            </ul>
+        </li>
+        <li><strong>Evolución Arquitectónica Recomendada:</strong> Reemplazar el escalado estático por un orquestador como <strong>Kubernetes con HPA (Horizontal Pod Autoscaler)</strong>, que al detectar más del 70% de uso de CPU levante réplicas automáticamente de 3 a 10 instancias.</li>
+    </ol>
+</div>
+
+<h2>6. Banco de Preguntas y Respuestas para los Profesores</h2>
+
+<div class="qa-box">
+    <div class="qa-question">P1: ¿Por qué usaron Round-Robin y no otro algoritmo en Nginx?</div>
+    <div class="qa-answer"><strong>Respuesta:</strong> "Round-Robin es el algoritmo estándar y equitativo cuando las réplicas tienen idéntica capacidad de hardware. Sin embargo, en nuestro análisis crítico señalamos que ante cargas heterogéneas (como rutas con cálculos pesados), el algoritmo <code>least_conn</code> (mínimas conexiones activas) habría sido más eficiente para no sobrecargar réplicas que aún tenían tareas pesadas en ejecución."</div>
+</div>
+
+<div class="qa-box">
+    <div class="qa-question">P2: ¿Cómo garantiza la arquitectura la tolerancia a fallos si se cae una réplica?</div>
+    <div class="qa-answer"><strong>Respuesta:</strong> "Mediante dos mecanismos en Nginx:
+    1) <code>max_fails=3</code> y <code>fail_timeout=10s</code> sacan automáticamente del clúster a una réplica que falle 3 veces.
+    2) <code>proxy_next_upstream</code> reenvía la petición inmediatamente a otra réplica viva sin arrojarle error 502 al cliente (Zero Downtime)."</div>
+</div>
+
+<div class="qa-box">
+    <div class="qa-question">P3: ¿Por qué la latencia promedio no es suficiente y se deben evaluar percentiles (p95 y p99)?</div>
+    <div class="qa-answer"><strong>Respuesta:</strong> "El promedio es engañoso: si 95 peticiones tardan 20 ms y 5 tardan 8 segundos, el promedio parece bueno pero el 5% de los usuarios sufrió una pésima experiencia. Los percentiles p95 y p99 reflejan el peor tiempo de espera del 5% y 1% de las transacciones más lentas (la 'cola larga'), siendo la métrica estándar para definir SLAs en la industria."</div>
+</div>
+
+<div class="qa-box">
+    <div class="qa-question">P4: ¿Por qué corrieron Apache Benchmark desde un contenedor dentro de la red virtual?</div>
+    <div class="qa-answer"><strong>Respuesta:</strong> "Para aislar la medición de factores externos ajenos a la arquitectura: la latencia de la placa de red física del host, firewalls locales de Windows o el ruteo de puertos. Al correr dentro de <code>globallogistics_net</code>, se mide exclusivamente el rendimiento del proxy y los microservicios."</div>
+</div>
+
+</body>
+</html>
+"""
+
+with open(HTML_PATH, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+edge_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+if not os.path.exists(edge_path):
+    edge_path = r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+
+cmd = [
+    edge_path,
+    "--headless",
+    "--disable-gpu",
+    "--no-pdf-header-footer",
+    f"--print-to-pdf={PDF_PATH}",
+    str(HTML_PATH)
+]
+
+res = subprocess.run(cmd, capture_output=True, text=True)
+if res.returncode == 0 and PDF_PATH.exists():
+    desktop = Path(os.environ["USERPROFILE"]) / "OneDrive" / "Escritorio"
+    if not desktop.exists():
+        desktop = Path(os.environ["USERPROFILE"]) / "Desktop"
+    import shutil
+    shutil.copyfile(PDF_PATH, desktop / "GUIA_ESTUDIO_Y_DEFENSA_ORAL.pdf")
+    print(f"[EXITO] PDF generado y copiado al escritorio: {PDF_PATH}")
